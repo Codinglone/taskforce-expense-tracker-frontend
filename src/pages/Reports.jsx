@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -12,11 +12,20 @@ const Reports = () => {
     { description: 'Rent', amount: 800, type: 'expense', category: 'Housing', subcategory: 'Monthly', account: 'VISA', date: '2023-01-20' },
     { description: 'Electricity Bill', amount: 100, type: 'expense', category: 'Utilities', subcategory: 'Monthly', account: 'Mobile Money', date: '2023-01-25' },
     { description: 'Stock Dividend', amount: 150, type: 'income', category: 'Investment', subcategory: 'Stocks', account: 'BTC', date: '2023-01-30' },
+    { description: 'Internet Bill', amount: 50, type: 'expense', category: 'Utilities', subcategory: 'Monthly', account: 'Mobile Money', date: '2023-02-01' },
+    { description: 'Gym Membership', amount: 60, type: 'expense', category: 'Health', subcategory: 'Monthly', account: 'VISA', date: '2023-02-05' },
+    { description: 'Book Purchase', amount: 30, type: 'expense', category: 'Education', subcategory: 'Books', account: 'BTC', date: '2023-02-10' },
+    { description: 'Consulting Fee', amount: 400, type: 'income', category: 'Freelance', subcategory: 'Consulting', account: 'BTC', date: '2023-02-15' },
   ]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [reportFormat, setReportFormat] = useState('json');
+
+  useEffect(() => {
+    const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    setFilteredTransactions(sortedTransactions.slice(0, 10));
+  }, [transactions]);
 
   const generateReport = () => {
     const filtered = transactions.filter(transaction => {
