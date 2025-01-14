@@ -7,6 +7,8 @@ const Expense = () => {
     { description: 'Groceries', amount: 200, type: 'expense', category: 'Food', subcategory: 'Weekly', account: 'Mobile Money' },
     { description: 'Bitcoin Purchase', amount: 500, type: 'expense', category: 'Investment', subcategory: 'Crypto', account: 'BTC' },
   ]);
+  const [categories, setCategories] = useState(['Food', 'Investment']);
+  const [subcategories, setSubcategories] = useState(['Weekly', 'Crypto']);
   const [selectedAccount, setSelectedAccount] = useState('All');
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
@@ -89,20 +91,26 @@ const Expense = () => {
             onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
             className="p-2 border rounded mr-2"
           />
-          <input
-            type="text"
-            placeholder="Category"
+          <select
             value={newTransaction.category}
             onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
             className="p-2 border rounded mr-2"
-          />
-          <input
-            type="text"
-            placeholder="Subcategory"
+          >
+            <option value="">Select Category</option>
+            {categories.map((category, index) => (
+              <option key={index} value={category}>{category}</option>
+            ))}
+          </select>
+          <select
             value={newTransaction.subcategory}
             onChange={(e) => setNewTransaction({ ...newTransaction, subcategory: e.target.value })}
             className="p-2 border rounded mr-2"
-          />
+          >
+            <option value="">Select Subcategory</option>
+            {subcategories.map((subcategory, index) => (
+              <option key={index} value={subcategory}>{subcategory}</option>
+            ))}
+          </select>
           <select
             value={newTransaction.account}
             onChange={(e) => setNewTransaction({ ...newTransaction, account: e.target.value })}
