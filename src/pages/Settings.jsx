@@ -21,7 +21,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="p-4 h-[94vh] overflow-auto">
+    <div className="p-4 h-[94vh] overflow-auto w-full bg-gray-100 border-4 border-white shadow-xl rounded-2xl">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Settings</h2>
       <form onSubmit={handleSubmit} className="bg-white p-4 shadow-lg rounded-lg">
         <div className="mb-4">

@@ -108,7 +108,7 @@ const Transactions = () => {
   };
 
   return (
-    <div className="p-4 h-[94vh] overflow-auto">
+    <div className="p-4 h-[94vh] overflow-auto w-full bg-gray-100 border-4 border-white shadow-xl rounded-2xl">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Transactions</h2>
       <div className="flex justify-between mb-4">
         <div className="w-1/2 p-4 shadow-lg bg-white rounded-lg hover:shadow-2xl hover:transition hover:cursor-pointer mr-4">

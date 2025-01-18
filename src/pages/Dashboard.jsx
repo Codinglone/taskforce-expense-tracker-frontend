@@ -57,7 +57,7 @@ const data = [
 
 const Dashboard = () => {
   return (
-    <div className="p-4">
+    <div className="p-4 w-full h-[94vh] bg-gray-100 border-4 border-white shadow-xl rounded-2xl">
       <div className="flex">
         <h2 className="text-2xl font-bold text-gray-800">All Transactions</h2>
       </div>

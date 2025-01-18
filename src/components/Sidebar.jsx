@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { FaSignOutAlt, FaBell } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 import { GrTransaction } from "react-icons/gr";
@@ -7,8 +7,9 @@ import { FaBook, FaGear } from "react-icons/fa6";
 import { FaMoneyCheckAlt } from "react-icons/fa";
 import { GiReceiveMoney, GiPayMoney } from "react-icons/gi";
 
-const Sidebar = () => {
+const Sidebar = ({ onLogout }) => {
   const [showNotifications, setShowNotifications] = useState(false);
+  const navigate = useNavigate();
 
   const links = [
     { name: "Dashboard", path: "/", icon: <MdDashboard /> },
@@ -23,6 +24,8 @@ const Sidebar = () => {
   const handleLogout = () => {
     // Handle logout logic here
     console.log("User logged out");
+    onLogout();
+    navigate('/signin');
   };
 
   const notifications = [
@@ -34,7 +37,7 @@ const Sidebar = () => {
   return (
     <div className="relative w-64 h-[94vh] bg-gray-100 border-4 border-white shadow-xl rounded-2xl my-4 mx-2 text-gray-800 flex flex-col justify-between">
       <div>
-        <div className="flex items-center justify-between p-4 rounded-lg">
+        <div className="flex items-center justify-between p-4">
           <img
             src="https://imgs.search.brave.com/c7bLCe7j_VgSXV0ocTj8kxiH5V0CISY7Qw80Lq76LFY/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS12ZWN0b3Iv/YnVzaW5lc3NtYW4t/Y2hhcmFjdGVyLWF2/YXRhci1pc29sYXRl/ZF8yNDg3Ny02MDEx/MS5qcGc_c2VtdD1h/aXNfaHlicmlk"
             alt="Profile"
@@ -50,6 +53,7 @@ const Sidebar = () => {
             )}
           </div>
         </div>
+        <h2 className="text-2xl font-bold p-4">My Dashboard</h2>
         <nav className="flex-grow">
           {links.map((link) => (
             <NavLink
@@ -57,9 +61,7 @@ const Sidebar = () => {
               to={link.path}
               className={({ isActive }) =>
                 `block py-1.5 px-4 text-lg ${
-                  isActive
-                    ? "border-l border-blue-600 text-blue-600 font-semibold"
-                    : "hover:text-blue-600 hover:font-semibold"
+                  isActive ? "border-l border-blue-600 text-blue-600 font-semibold" : "hover:text-blue-600 hover:font-semibold"
                 }`
               }
             >
@@ -84,18 +86,12 @@ const Sidebar = () => {
           <div className="bg-white rounded-lg shadow-lg p-4 max-w-sm w-full z-50">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold">Notifications</h3>
-              <button
-                onClick={() => setShowNotifications(false)}
-                className="text-gray-600 hover:text-gray-800"
-              >
+              <button onClick={() => setShowNotifications(false)} className="text-gray-600 hover:text-gray-800">
                 &times;
               </button>
             </div>
             {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className="bg-gray-100 p-2 rounded mb-2"
-              >
+              <div key={notification.id} className="bg-gray-100 p-2 rounded mb-2">
                 {notification.message}
               </div>
             ))}
