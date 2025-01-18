@@ -57,7 +57,9 @@ const Sidebar = () => {
               to={link.path}
               className={({ isActive }) =>
                 `block py-1.5 px-4 text-lg ${
-                  isActive ? "border-l border-blue-600 text-blue-600 font-semibold" : "hover:text-blue-600 hover:font-semibold"
+                  isActive
+                    ? "border-l border-blue-600 text-blue-600 font-semibold"
+                    : "hover:text-blue-600 hover:font-semibold"
                 }`
               }
             >
@@ -82,12 +84,18 @@ const Sidebar = () => {
           <div className="bg-white rounded-lg shadow-lg p-4 max-w-sm w-full z-50">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold">Notifications</h3>
-              <button onClick={() => setShowNotifications(false)} className="text-gray-600 hover:text-gray-800">
+              <button
+                onClick={() => setShowNotifications(false)}
+                className="text-gray-600 hover:text-gray-800"
+              >
                 &times;
               </button>
             </div>
             {notifications.map((notification) => (
-              <div key={notification.id} className="bg-gray-100 p-2 rounded mb-2">
+              <div
+                key={notification.id}
+                className="bg-gray-100 p-2 rounded mb-2"
+              >
                 {notification.message}
               </div>
             ))}
