@@ -4,15 +4,15 @@ import 'chart.js/auto';
 
 const Expense = () => {
   const [transactions, setTransactions] = useState([
-    { description: 'Groceries', amount: 200, type: 'expense', category: 'Food', subcategory: 'Weekly', account: 'Mobile Money' },
-    { description: 'Bitcoin Purchase', amount: 500, type: 'expense', category: 'Investment', subcategory: 'Crypto', account: 'BTC' },
+    { description: 'Groceries', amount: 200, type: 'expense', category: 'Food', subcategory: 'Weekly', account: 'Mobile Money', date: '2023-01-05' },
+    { description: 'Bitcoin Purchase', amount: 500, type: 'expense', category: 'Investment', subcategory: 'Crypto', account: 'BTC', date: '2023-01-10' },
   ]);
   const [categories, setCategories] = useState(['Food', 'Investment']);
   const [subcategories, setSubcategories] = useState(['Weekly', 'Crypto']);
   const [selectedAccount, setSelectedAccount] = useState('All');
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [newTransaction, setNewTransaction] = useState({ description: '', amount: 0, category: '', subcategory: '', account: '' });
+  const [newTransaction, setNewTransaction] = useState({ description: '', amount: 0, category: '', subcategory: '', account: '', date: '' });
 
   useEffect(() => {
     const calculateTotalExpenses = () => {
@@ -28,7 +28,7 @@ const Expense = () => {
     e.preventDefault();
     setTransactions([...transactions, { ...newTransaction, type: 'expense' }]);
     setShowTransactionForm(false);
-    setNewTransaction({ description: '', amount: 0, category: '', subcategory: '', account: '' });
+    setNewTransaction({ description: '', amount: 0, category: '', subcategory: '', account: '', date: '' });
   };
 
   const filteredTransactions = selectedAccount === 'All' ? transactions : transactions.filter(transaction => transaction.account === selectedAccount);
@@ -111,6 +111,12 @@ const Expense = () => {
               <option key={index} value={subcategory}>{subcategory}</option>
             ))}
           </select>
+          <input
+            type="date"
+            value={newTransaction.date}
+            onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })}
+            className="p-2 border rounded mr-2"
+          />
           <select
             value={newTransaction.account}
             onChange={(e) => setNewTransaction({ ...newTransaction, account: e.target.value })}
@@ -151,6 +157,7 @@ const Expense = () => {
                 <th className="py-2 px-4 border-b text-left">Amount</th>
                 <th className="py-2 px-4 border-b text-left">Category</th>
                 <th className="py-2 px-4 border-b text-left">Subcategory</th>
+                <th className="py-2 px-4 border-b text-left">Date</th>
                 <th className="py-2 px-4 border-b text-left">Account</th>
               </tr>
             </thead>
@@ -161,6 +168,7 @@ const Expense = () => {
                   <td className="py-2 px-4 border-b text-left text-red-600">-${transaction.amount}</td>
                   <td className="py-2 px-4 border-b text-left">{transaction.category}</td>
                   <td className="py-2 px-4 border-b text-left">{transaction.subcategory}</td>
+                  <td className="py-2 px-4 border-b text-left">{transaction.date}</td>
                   <td className="py-2 px-4 border-b text-left">{transaction.account}</td>
                 </tr>
               ))}
