@@ -53,7 +53,6 @@ const Sidebar = ({ onLogout }) => {
             )}
           </div>
         </div>
-        <h2 className="text-2xl font-bold p-4">My Dashboard</h2>
         <nav className="flex-grow">
           {links.map((link) => (
             <NavLink
