@@ -23,7 +23,7 @@ const SignUp = () => {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-100">
+    <div className="flex items-center justify-center h-screen">
       <div className="bg-white p-8 rounded-lg shadow-2xl w-96">
         <h1 className="text-2xl font-bold mb-4 text-left text-blue-600">Taskforce Expense Tracker</h1>
         <h2 className="text-xl font-bold mb-4 text-left">Sign Up</h2>

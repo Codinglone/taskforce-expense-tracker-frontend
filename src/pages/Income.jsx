@@ -1,28 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Bar } from "react-chartjs-2";
 import "chart.js/auto";
+import { toast } from "react-toastify";
+import { addIncome, getIncome } from "../utils/api";
 
 const Income = () => {
-  const [transactions, setTransactions] = useState([
-    {
-      description: "Salary",
-      amount: 1000,
-      type: "income",
-      account: "VISA",
-      date: "2023-01-01",
-    },
-    {
-      description: "Freelance Work",
-      amount: 300,
-      type: "income",
-      account: "BTC",
-      date: "2023-01-15",
-    },
-  ]);
+  const [incomes, setIncomes] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState("All");
   const [totalIncome, setTotalIncome] = useState(0);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [newTransaction, setNewTransaction] = useState({
+  const [newIncome, setNewIncome] = useState({
     description: "",
     amount: 0,
     account: "",
@@ -30,50 +17,67 @@ const Income = () => {
   });
 
   useEffect(() => {
+    const fetchIncome = async () => {
+      const token = localStorage.getItem("token");
+      try {
+        const data = await getIncome(token);
+        setIncomes(data);
+      } catch (error) {
+        toast.error("Error fetching income");
+      }
+    };
+
+    fetchIncome();
+  }, []);
+
+  useEffect(() => {
     const calculateTotalIncome = () => {
-      const filteredTransactions =
+      const filteredIncomes =
         selectedAccount === "All"
-          ? transactions
-          : transactions.filter(
-              (transaction) => transaction.account === selectedAccount
-            );
-      const totalIncome = filteredTransactions.reduce(
-        (sum, transaction) => sum + parseFloat(transaction.amount),
+          ? incomes
+          : incomes.filter((income) => income.account === selectedAccount);
+      const totalIncome = filteredIncomes.reduce(
+        (sum, income) => sum + parseFloat(income.amount),
         0
       );
       setTotalIncome(totalIncome);
     };
 
     calculateTotalIncome();
-  }, [selectedAccount, transactions]);
+  }, [selectedAccount, incomes]);
 
-  const addTransaction = (e) => {
+  const addTransaction = async (e) => {
     e.preventDefault();
-    setTransactions([...transactions, { ...newTransaction, type: "income" }]);
-    setShowTransactionForm(false);
-    setNewTransaction({
-      description: "",
-      amount: 0,
-      account: "",
-      date: "",
-    });
+    const token = localStorage.getItem("token");
+    try {
+      const data = await addIncome(newIncome, token);
+      setIncomes([...incomes, data]);
+      setShowTransactionForm(false);
+      setNewIncome({
+        description: "",
+        amount: 0,
+        account: "",
+        date: "",
+      });
+      toast.success("Income added successfully!");
+    } catch (error) {
+      toast.error("Error adding income");
+    }
   };
 
-  const filteredTransactions =
+  const filteredIncomes =
     selectedAccount === "All"
-      ? transactions
-      : transactions.filter(
-          (transaction) => transaction.account === selectedAccount
-        );
+      ? incomes
+      : incomes.filter((income) => income.account === selectedAccount);
 
   const chartData = {
-    labels: filteredTransactions.map((transaction) => transaction.description),
+    labels: filteredIncomes.map((income) => income.description),
     datasets: [
       {
         label: "Amount",
-        data: filteredTransactions.map((transaction) => transaction.amount),
-        backgroundColor: filteredTransactions.map((transaction) => {
-          switch (transaction.account) {
+        data: filteredIncomes.map((income) => income.amount),
+        backgroundColor: filteredIncomes.map((income) => {
+          switch (income.account) {
             case "VISA":
               return "rgba(54, 162, 235, 0.6)";
             case "BTC":
@@ -82,8 +86,8 @@ const Income = () => {
               return "rgba(75, 192, 192, 0.6)";
           }
         }),
-        borderColor: filteredTransactions.map((transaction) => {
-          switch (transaction.account) {
+        borderColor: filteredIncomes.map((income) => {
+          switch (income.account) {
             case "VISA":
               return "rgba(54, 162, 235, 1)";
             case "BTC":
@@ -113,36 +117,33 @@ const Income = () => {
           <input
             type="text"
             placeholder="Description"
-            value={newTransaction.description}
+            value={newIncome.description}
             onChange={(e) =>
-              setNewTransaction({
-                ...newTransaction,
-                description: e.target.value,
-              })
+              setNewIncome({ ...newIncome, description: e.target.value })
             }
             className="p-2 border rounded mr-2"
           />
           <input
             type="number"
             placeholder="Amount"
-            value={newTransaction.amount}
+            value={newIncome.amount}
             onChange={(e) =>
-              setNewTransaction({ ...newTransaction, amount: e.target.value })
+              setNewIncome({ ...newIncome, amount: e.target.value })
             }
             className="p-2 border rounded mr-2"
           />
           <input
             type="date"
-            value={newTransaction.date}
+            value={newIncome.date}
             onChange={(e) =>
-              setNewTransaction({ ...newTransaction, date: e.target.value })
+              setNewIncome({ ...newIncome, date: e.target.value })
             }
             className="p-2 border rounded mr-2"
           />
           <select
-            value={newTransaction.account}
+            value={newIncome.account}
             onChange={(e) =>
-              setNewTransaction({ ...newTransaction, account: e.target.value })
+              setNewIncome({ ...newIncome, account: e.target.value })
             }
             className="p-2 border rounded mr-2"
           >
@@ -191,19 +192,19 @@ const Income = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredTransactions.map((transaction, index) => (
+              {filteredIncomes.map((income, index) => (
                 <tr key={index}>
                   <td className="py-2 px-4 border-b text-left">
-                    {transaction.description}
+                    {income.description}
                   </td>
                   <td className="py-2 px-4 border-b text-left text-green-600">
-                    +${transaction.amount}
+                    +${income.amount}
                   </td>
                   <td className="py-2 px-4 border-b text-left">
-                    {transaction.date}
+                    {income.date}
                   </td>
                   <td className="py-2 px-4 border-b text-left">
-                    {transaction.account}
+                    {income.account}
                   </td>
                 </tr>
               ))}
