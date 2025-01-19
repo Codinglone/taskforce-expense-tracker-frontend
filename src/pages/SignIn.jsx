@@ -1,25 +1,24 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useContext } from "react";
+import axiosInstance from "../utils/api";
+import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
-import { loginUser } from "../utils/api";
 
-const SignIn = ({ onLogin }) => {
+const SignIn = () => {
+  const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   const handleSignIn = async (e) => {
     e.preventDefault();
     try {
-      const data = await loginUser({ email, password });
-      localStorage.setItem("token", data.token);
-      onLogin();
-      navigate("/");
-      toast.success("Successfully signed in!");
+      const response = await axiosInstance.post("/auth/login", { email, password });
+      const token = response.data.token;
+      login(token);
+      toast.success("Logged in successfully!!");
     } catch (error) {
-      setError("Invalid credentials");
-      toast.error("Invalid credentials");
+      setError("Login error:", error);
+      toast.error("Invalid credentials. Try again!!");
     }
   };
 
@@ -30,6 +29,7 @@ const SignIn = ({ onLogin }) => {
           Taskforce Expense Tracker
         </h1>
         <h2 className="text-xl font-bold mb-4">Sign In</h2>
+        {error && <p className="text-red-500 text-center">{error.message}</p>}
         <div className="mb-4 p-4 bg-gray-50 rounded-lg shadow-inner">
           <h3 className="text-lg font-bold mb-2">Demo User</h3>
           <p>

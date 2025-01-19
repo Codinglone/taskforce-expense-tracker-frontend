@@ -18,9 +18,8 @@ const Income = () => {
 
   useEffect(() => {
     const fetchIncome = async () => {
-      const token = localStorage.getItem("token");
       try {
-        const data = await getIncome(token);
+        const data = await getIncome();
         setIncomes(data);
       } catch (error) {
         toast.error("Error fetching income");
@@ -48,9 +47,8 @@ const Income = () => {
 
   const addTransaction = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
     try {
-      const data = await addIncome(newIncome, token);
+      const data = await addIncome(newIncome);
       setIncomes([...incomes, data]);
       setShowTransactionForm(false);
       setNewIncome({

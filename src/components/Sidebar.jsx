@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { FaSignOutAlt, FaBell } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
@@ -6,8 +6,10 @@ import { GrTransaction } from "react-icons/gr";
 import { FaBook, FaGear } from "react-icons/fa6";
 import { FaMoneyCheckAlt } from "react-icons/fa";
 import { GiReceiveMoney, GiPayMoney } from "react-icons/gi";
+import { AuthContext } from "../context/AuthContext";
 
-const Sidebar = ({ onLogout }) => {
+const Sidebar = () => {
+  const { logout } = useContext(AuthContext);
   const [showNotifications, setShowNotifications] = useState(false);
   const navigate = useNavigate();
 
@@ -22,9 +24,7 @@ const Sidebar = ({ onLogout }) => {
   ];
 
   const handleLogout = () => {
-    // Handle logout logic here
-    console.log("User logged out");
-    onLogout();
+    logout();
     navigate('/signin');
   };
 

@@ -2,70 +2,99 @@ import React, { useState, useEffect } from "react";
 import { Bar } from "react-chartjs-2";
 import "chart.js/auto";
 import { toast } from "react-toastify";
-import { addExpense, getExpenses } from "../utils/api";
+import {
+  getExpenses,
+  addExpense,
+  getCategories,
+  addCategory,
+  addSubcategory,
+} from "../utils/api";
 
 const Expense = () => {
   const [expenses, setExpenses] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState({});
+
+  const [view, setView] = useState("expense");
   const [selectedAccount, setSelectedAccount] = useState("All");
   const [totalExpenses, setTotalExpenses] = useState(0);
-  const [view, setView] = useState("expense"); // 'expense', 'category', 'subcategory'
-  const [categories, setCategories] = useState(["Food", "Investment"]);
-  const [subcategories, setSubcategories] = useState({
-    Food: ["Weekly"],
-    Investment: ["Crypto"],
-  });
+
   const [newExpense, setNewExpense] = useState({
     description: "",
-    amount: 0,
+    amount: "",
     category: "",
     subcategory: "",
     account: "",
     date: "",
   });
   const [newCategory, setNewCategory] = useState("");
-  const [newSubcategory, setNewSubcategory] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [newSubcategory, setNewSubcategory] = useState("");
 
+  // Fetch all categories from server
+  const fetchAllCategories = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const data = await getCategories();
+      const catNames = data.map((cat) => cat.name);
+      const subcatMap = {};
+      data.forEach((cat) => {
+        subcatMap[cat.name] = cat.subcategories || [];
+      });
+      setCategories(catNames);
+      setSubcategories(subcatMap);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      toast.error("Error fetching categories");
+    }
+  };
+
+  const fetchAllExpenses = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const data = await getExpenses();
+      setExpenses(data);
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+      toast.error("Error fetching expenses");
+    }
+  };
+
+  // Initial data fetch
   useEffect(() => {
-    const fetchExpenses = async () => {
-      const token = localStorage.getItem("token");
-      try {
-        const data = await getExpenses(token);
-        setExpenses(data);
-      } catch (error) {
-        toast.error("Error fetching expenses");
-      }
-    };
-
-    fetchExpenses();
+    fetchAllCategories();
+    fetchAllExpenses();
   }, []);
 
+  // Calculate total expenses whenever expenses or selectedAccount changes
   useEffect(() => {
-    const calculateTotalExpenses = () => {
-      const filteredExpenses =
-        selectedAccount === "All"
-          ? expenses
-          : expenses.filter((expense) => expense.account === selectedAccount);
-      const totalExpenses = filteredExpenses.reduce(
-        (sum, expense) => sum + parseFloat(expense.amount),
-        0
-      );
-      setTotalExpenses(totalExpenses);
-    };
-
-    calculateTotalExpenses();
+    const filtered =
+      selectedAccount === "All"
+        ? expenses
+        : expenses.filter((expense) => expense.account === selectedAccount);
+    const total = filtered.reduce(
+      (sum, expense) => sum + Number(expense.amount),
+      0
+    );
+    setTotalExpenses(total);
   }, [selectedAccount, expenses]);
 
-  const addTransaction = async (e) => {
+  const handleAddExpense = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("User not authenticated");
+      return;
+    }
     try {
-      const data = await addExpense(newExpense, token);
-      setExpenses([...expenses, data]);
+      const response = await addExpense(newExpense);
+      setExpenses([...expenses, response]);
       setView("expense");
       setNewExpense({
         description: "",
-        amount: 0,
+        amount: "",
         category: "",
         subcategory: "",
         account: "",
@@ -73,52 +102,63 @@ const Expense = () => {
       });
       toast.success("Expense added successfully!");
     } catch (error) {
+      console.error("Error adding expense:", error);
       toast.error("Error adding expense");
     }
   };
 
-  const addCategory = (e) => {
+  const handleAddCategory = async (e) => {
     e.preventDefault();
-    if (newCategory && !categories.includes(newCategory)) {
-      setCategories([...categories, newCategory]);
-      setSubcategories({ ...subcategories, [newCategory]: [] });
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("User not authenticated");
+      return;
+    }
+    try {
+      await addCategory({ name: newCategory });
+      toast.success("Category added successfully!");
       setNewCategory("");
       setView("expense");
-      toast.success("Category added successfully!");
-    } else {
-      toast.error("Category already exists or is empty");
+      await fetchAllCategories(); // Refresh categories
+    } catch (error) {
+      console.error("Error adding category:", error);
+      toast.error("Error adding category");
     }
   };
 
-  const addSubcategory = (e) => {
+  const handleAddSubcategory = async (e) => {
     e.preventDefault();
-    if (
-      newSubcategory &&
-      selectedCategory &&
-      !subcategories[selectedCategory].includes(newSubcategory)
-    ) {
-      setSubcategories({
-        ...subcategories,
-        [selectedCategory]: [
-          ...subcategories[selectedCategory],
-          newSubcategory,
-        ],
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("User not authenticated");
+      return;
+    }
+    if (!selectedCategory) {
+      toast.error("Please select a category first");
+      return;
+    }
+    try {
+      await addSubcategory({
+        category: selectedCategory,
+        name: newSubcategory,
       });
+      toast.success("Subcategory added successfully!");
       setNewSubcategory("");
       setView("expense");
-      toast.success("Subcategory added successfully!");
-    } else {
-      toast.error(
-        "Subcategory already exists, category not selected, or is empty"
-      );
+      await fetchAllCategories();
+    } catch (error) {
+      console.error("Error adding subcategory:", error);
+      toast.error("Error adding subcategory");
     }
   };
 
+  // Filtered expenses based on selectedAccount
   const filteredExpenses =
     selectedAccount === "All"
       ? expenses
       : expenses.filter((expense) => expense.account === selectedAccount);
 
+  // Prepare chart data
   const chartData = {
     labels: filteredExpenses.map((expense) => expense.description),
     datasets: [
@@ -153,150 +193,195 @@ const Expense = () => {
   return (
     <div className="p-4 h-[94vh] overflow-auto w-full bg-gray-100 border-4 border-white shadow-xl rounded-2xl">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Expenses</h2>
-      <div className="mb-4 flex justify-between">
+
+      {/* Navigation Buttons */}
+      <div className="mb-4 flex space-x-2">
         <button
-          className="bg-blue-500 text-white p-2 rounded-lg shadow hover:bg-blue-700"
+          className={`p-2 rounded-lg shadow ${
+            view === "expense"
+              ? "bg-blue-700 text-white"
+              : "bg-blue-500 text-white hover:bg-blue-700"
+          }`}
           onClick={() => setView("expense")}
         >
-          New Expense
+          Add Expense
         </button>
         <button
-          className="bg-green-500 text-white p-2 rounded-lg shadow hover:bg-green-700"
+          className={`p-2 rounded-lg shadow ${
+            view === "category"
+              ? "bg-green-700 text-white"
+              : "bg-green-500 text-white hover:bg-green-700"
+          }`}
           onClick={() => setView("category")}
         >
           Add Category
         </button>
         <button
-          className="bg-yellow-500 text-white p-2 rounded-lg shadow hover:bg-yellow-700"
+          className={`p-2 rounded-lg shadow ${
+            view === "subcategory"
+              ? "bg-yellow-700 text-white"
+              : "bg-yellow-500 text-white hover:bg-yellow-700"
+          }`}
           onClick={() => setView("subcategory")}
         >
           Add Subcategory
         </button>
       </div>
+
+      {/* Expense Form */}
       {view === "expense" && (
-        <form className="mb-4" onSubmit={addTransaction}>
-          <input
-            type="text"
-            placeholder="Description"
-            value={newExpense.description}
-            onChange={(e) =>
-              setNewExpense({ ...newExpense, description: e.target.value })
-            }
-            className="p-2 border rounded mr-2"
-          />
-          <input
-            type="number"
-            placeholder="Amount"
-            value={newExpense.amount}
-            onChange={(e) =>
-              setNewExpense({ ...newExpense, amount: e.target.value })
-            }
-            className="p-2 border rounded mr-2 w-[13.74%]"
-          />
-          <select
-            value={newExpense.category}
-            onChange={(e) =>
-              setNewExpense({ ...newExpense, category: e.target.value })
-            }
-            className="p-2 border rounded mr-2"
-          >
-            <option value="">Select Category</option>
-            {categories.map((category, index) => (
-              <option key={index} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-          <select
-            value={newExpense.subcategory}
-            onChange={(e) =>
-              setNewExpense({ ...newExpense, subcategory: e.target.value })
-            }
-            className="p-2 border rounded mr-2"
-          >
-            <option value="">Select Subcategory</option>
-            {newExpense.category &&
-              subcategories[newExpense.category].map((subcategory, index) => (
-                <option key={index} value={subcategory}>
-                  {subcategory}
+        <form className="mb-6" onSubmit={handleAddExpense}>
+          <div className="flex flex-wrap space-x-2 mb-2">
+            <input
+              type="text"
+              placeholder="Description"
+              value={newExpense.description}
+              onChange={(e) =>
+                setNewExpense({ ...newExpense, description: e.target.value })
+              }
+              required
+              className="p-2 border rounded w-1/6"
+            />
+            <input
+              type="number"
+              placeholder="Amount"
+              value={newExpense.amount}
+              onChange={(e) =>
+                setNewExpense({ ...newExpense, amount: e.target.value })
+              }
+              required
+              className="p-2 border rounded w-[12.74%]"
+            />
+            <select
+              value={newExpense.category}
+              onChange={(e) =>
+                setNewExpense({
+                  ...newExpense,
+                  category: e.target.value,
+                  subcategory: "",
+                })
+              }
+              required
+              className="p-2 border rounded w-1/6"
+            >
+              <option value="">Select Category</option>
+              {categories.map((cat, idx) => (
+                <option key={idx} value={cat}>
+                  {cat}
                 </option>
               ))}
-          </select>
-          <input
-            type="date"
-            value={newExpense.date}
-            onChange={(e) =>
-              setNewExpense({ ...newExpense, date: e.target.value })
-            }
-            className="p-2 border rounded mr-2"
-          />
-          <select
-            value={newExpense.account}
-            onChange={(e) =>
-              setNewExpense({ ...newExpense, account: e.target.value })
-            }
-            className="p-2 border rounded mr-2"
-          >
-            <option value="">Select Account</option>
-            <option value="Mobile Money">Mobile Money</option>
-            <option value="BTC">BTC</option>
-          </select>
+            </select>
+            <select
+              value={newExpense.subcategory}
+              onChange={(e) =>
+                setNewExpense({ ...newExpense, subcategory: e.target.value })
+              }
+              className="p-2 border rounded w-1/6"
+              disabled={!newExpense.category}
+              required
+            >
+              <option value="">Subcategory</option>
+              {newExpense.category &&
+                subcategories[newExpense.category]?.map((subcat, idx) => (
+                  <option key={idx} value={subcat}>
+                    {subcat}
+                  </option>
+                ))}
+            </select>
+            <input
+              type="date"
+              value={newExpense.date}
+              onChange={(e) =>
+                setNewExpense({ ...newExpense, date: e.target.value })
+              }
+              required
+              className="p-2 border rounded w-1/6"
+            />
+            <select
+              value={newExpense.account}
+              onChange={(e) =>
+                setNewExpense({ ...newExpense, account: e.target.value })
+              }
+              required
+              className="p-2 border rounded w-1/6"
+            >
+              <option value="">Select Account</option>
+              <option value="Mobile Money">Mobile Money</option>
+              <option value="BTC">BTC</option>
+            </select>
+          </div>
+
           <button
             type="submit"
-            className="bg-blue-500 text-white p-2 rounded-lg shadow hover:bg-blue-700 mr-2 mt-2"
+            className="mt-2 bg-blue-500 text-white p-2 rounded-lg shadow hover:bg-blue-700"
           >
             Add Expense
           </button>
         </form>
       )}
+
+      {/* Category Form */}
       {view === "category" && (
-        <form className="mb-4" onSubmit={addCategory}>
-          <input
-            type="text"
-            placeholder="New Category"
-            value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
-            className="p-2 border rounded mr-2"
-          />
-          <button
-            type="submit"
-            className="bg-green-500 text-white p-2 rounded-lg shadow hover:bg-green-700"
-          >
-            Add Category
-          </button>
+        <form className="mb-6" onSubmit={handleAddCategory}>
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              placeholder="New Category"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              required
+              className="p-2 border rounded flex-1 min-w-[200px]"
+            />
+            <button
+              type="submit"
+              className="bg-green-500 text-white p-2 rounded-lg shadow hover:bg-green-700"
+            >
+              Add Category
+            </button>
+          </div>
         </form>
       )}
+
+      {/* Subcategory Form */}
       {view === "subcategory" && (
-        <form className="mb-4" onSubmit={addSubcategory}>
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="p-2 border rounded mr-2"
-          >
-            <option value="">Select Category</option>
-            {categories.map((category, index) => (
-              <option key={index} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="New Subcategory"
-            value={newSubcategory}
-            onChange={(e) => setNewSubcategory(e.target.value)}
-            className="p-2 border rounded mr-2"
-          />
-          <button
-            type="submit"
-            className="bg-yellow-500 text-white p-2 rounded-lg shadow hover:bg-yellow-700"
-          >
-            Add Subcategory
-          </button>
+        <form className="mb-6" onSubmit={handleAddSubcategory}>
+          <div className="flex space-x-2">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              required
+              className="p-2 border rounded"
+            >
+              <option value="">Select Category</option>
+              {categories.map((cat, idx) => (
+                <option key={idx} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              placeholder="New Subcategory"
+              value={newSubcategory}
+              onChange={(e) => setNewSubcategory(e.target.value)}
+              required
+              className="p-2 border rounded flex-1 min-w-[200px]"
+            />
+            <button
+              type="submit"
+              className="bg-yellow-500 text-white p-2 rounded-lg shadow hover:bg-yellow-700"
+            >
+              Add Subcategory
+            </button>
+          </div>
         </form>
       )}
-      <div className="mb-4">
-        <h3 className="text-xl font-bold text-gray-800">Filter by Account</h3>
+
+      {/* Filter by Account */}
+      <div className="mb-6">
+        <h3 className="text-xl font-bold text-gray-800 mb-2">
+          Filter by Account
+        </h3>
         <select
           value={selectedAccount}
           onChange={(e) => setSelectedAccount(e.target.value)}
@@ -307,14 +392,20 @@ const Expense = () => {
           <option value="BTC">BTC</option>
         </select>
       </div>
-      <div className="mb-4">
+
+      {/* Total Expenses */}
+      <div className="mb-6">
         <h3 className="text-xl font-bold text-gray-800">
           Total Expenses for {selectedAccount} Account
         </h3>
-        <p className="text-2xl font-bold text-red-600">-${totalExpenses}</p>
+        <p className="text-2xl font-bold text-red-600">
+          -${totalExpenses.toFixed(2)}
+        </p>
       </div>
-      <div className="mb-4">
-        <h3 className="text-xl font-bold text-gray-800">
+
+      {/* Expense Transactions List */}
+      <div className="mb-6">
+        <h3 className="text-xl font-bold text-gray-800 mb-2">
           Expense Transactions List
         </h3>
         <div className="overflow-auto">
@@ -330,13 +421,13 @@ const Expense = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredExpenses.map((expense, index) => (
-                <tr key={index}>
+              {filteredExpenses.map((expense, idx) => (
+                <tr key={idx}>
                   <td className="py-2 px-4 border-b text-left">
                     {expense.description}
                   </td>
                   <td className="py-2 px-4 border-b text-left text-red-600">
-                    -${expense.amount}
+                    -${Number(expense.amount).toFixed(2)}
                   </td>
                   <td className="py-2 px-4 border-b text-left">
                     {expense.category}
@@ -345,7 +436,7 @@ const Expense = () => {
                     {expense.subcategory}
                   </td>
                   <td className="py-2 px-4 border-b text-left">
-                    {expense.date}
+                    {new Date(expense.date).toLocaleDateString()}
                   </td>
                   <td className="py-2 px-4 border-b text-left">
                     {expense.account}
@@ -356,8 +447,10 @@ const Expense = () => {
           </table>
         </div>
       </div>
-      <div className="mb-4">
-        <h3 className="text-xl font-bold text-gray-800">Expenses Chart</h3>
+
+      {/* Expenses Chart */}
+      <div className="mb-6">
+        <h3 className="text-xl font-bold text-gray-800 mb-2">Expenses Chart</h3>
         <div className="p-4 shadow-lg bg-white rounded-lg">
           <Bar data={chartData} />
         </div>

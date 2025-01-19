@@ -1,24 +1,26 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { registerUser } from '../utils/api';
+import axios from 'axios';
+import axiosInstance from '../utils/api';
 
 const SignUp = () => {
+  const { login } = useContext(AuthContext);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   const handleSignUp = async (e) => {
     e.preventDefault();
     try {
-      await registerUser({ name, email, password });
-      navigate('/signin');
-      toast.success("Successfully registered! Please sign in.");
+      const response = await axiosInstance.post("/auth/register",{ name, email, password });
+      const { token } = response.data;
+      login(token);
+      toast.success("Registered Successfully!");
     } catch (err) {
-      setError('Error registering user');
-      toast.error("Error registering user");
+      setError(err);
+      toast.error("Registration failed. Please try again.");
     }
   };
 
@@ -27,7 +29,7 @@ const SignUp = () => {
       <div className="bg-white p-8 rounded-lg shadow-2xl w-96">
         <h1 className="text-2xl font-bold mb-4 text-left text-blue-600">Taskforce Expense Tracker</h1>
         <h2 className="text-xl font-bold mb-4 text-left">Sign Up</h2>
-        {error && <p className="text-red-500 text-center">{error}</p>}
+        {error && <p className="text-red-500 text-center">{error.message}</p>}
         <form onSubmit={handleSignUp}>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">

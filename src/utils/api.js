@@ -1,34 +1,28 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_BASE_URL;
+const axiosInstance = axios.create({
+  baseURL: API_URL,
+});
 
-export const registerUser = async (userData) => {
-  try {
-    const response = await axios.post(`${API_URL}/auth/register`, userData);
-    return response.data;
-  } catch (error) {
-    console.error("Error registering user:", error);
-    throw error;
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      console.log("Setting Authorization header:", `Bearer ${token}`);
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-};
+);
 
-export const loginUser = async (userData) => {
+export const addIncome = async (incomeData) => {
   try {
-    const response = await axios.post(`${API_URL}/auth/login`, userData);
-    return response.data;
-  } catch (error) {
-    console.error("Error logging in user:", error);
-    throw error;
-  }
-};
-
-export const addIncome = async (incomeData, token) => {
-  try {
-    const response = await axios.post(`${API_URL}/income`, incomeData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await axiosInstance.post("/income", incomeData);
     return response.data;
   } catch (error) {
     console.error("Error adding income:", error);
@@ -36,13 +30,9 @@ export const addIncome = async (incomeData, token) => {
   }
 };
 
-export const addExpense = async (expenseData, token) => {
+export const addExpense = async (expenseData) => {
   try {
-    const response = await axios.post(`${API_URL}/expenses`, expenseData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await axiosInstance.post("/expenses", expenseData);
     return response.data;
   } catch (error) {
     console.error("Error adding expense:", error);
@@ -50,13 +40,9 @@ export const addExpense = async (expenseData, token) => {
   }
 };
 
-export const getIncome = async (token) => {
+export const getIncome = async () => {
   try {
-    const response = await axios.get(`${API_URL}/income`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await axiosInstance.get("/income");
     return response.data;
   } catch (error) {
     console.error("Error fetching income:", error);
@@ -64,13 +50,9 @@ export const getIncome = async (token) => {
   }
 };
 
-export const getExpenses = async (token) => {
+export const getExpenses = async () => {
   try {
-    const response = await axios.get(`${API_URL}/expenses`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await axiosInstance.get("/expenses");
     return response.data;
   } catch (error) {
     console.error("Error fetching expenses:", error);
@@ -78,58 +60,37 @@ export const getExpenses = async (token) => {
   }
 };
 
-export const addCategory = async (categoryData, token) => {
+export const addCategory = async (categoryData) => {
   try {
-    const response = await axios.post(`${API_URL}/categories`, categoryData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await axiosInstance.post("/categories/category", categoryData);
     return response.data;
   } catch (error) {
-    console.error('Error adding category:', error);
+    console.error("Error adding category:", error);
     throw error;
   }
 };
 
-export const getCategories = async (token) => {
+export const addSubcategory = async (subcategoryData) => {
   try {
-    const response = await axios.get(`${API_URL}/categories`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await axiosInstance.post(
+      "/categories/subcategory",
+      subcategoryData
+    );
     return response.data;
   } catch (error) {
-    console.error('Error fetching categories:', error);
+    console.error("Error adding subcategory:", error);
     throw error;
   }
 };
 
-export const addSubcategory = async (subcategoryData, token) => {
+export const getCategories = async () => {
   try {
-    const response = await axios.post(`${API_URL}/subcategories`, subcategoryData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await axiosInstance.get("/categories");
     return response.data;
   } catch (error) {
-    console.error('Error adding subcategory:', error);
+    console.error("Error fetching categories:", error);
     throw error;
   }
 };
 
-export const getSubcategories = async (token) => {
-  try {
-    const response = await axios.get(`${API_URL}/subcategories`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching subcategories:', error);
-    throw error;
-  }
-};
+export default axiosInstance;
