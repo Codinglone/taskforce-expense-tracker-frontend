@@ -8,24 +8,27 @@ import {
   getCategories,
   addCategory,
   addSubcategory,
+  getAccounts,
 } from "../utils/api";
 
 const Expense = () => {
+
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState({});
-
   const [view, setView] = useState("expense");
   const [selectedAccount, setSelectedAccount] = useState("All");
   const [totalExpenses, setTotalExpenses] = useState(0);
-
+  const [accounts, setAccounts] = useState([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
+  const [selectedAccountFilter, setSelectedAccountFilter] = useState("All");
   const [newExpense, setNewExpense] = useState({
     description: "",
     amount: "",
     category: "",
     subcategory: "",
-    account: "",
-    date: "",
+    accountId: "", // Changed from account to accountId
+    date: new Date().toISOString().split('T')[0],
   });
   const [newCategory, setNewCategory] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -50,11 +53,13 @@ const Expense = () => {
     }
   };
 
+  // Fetch all expenses from server
   const fetchAllExpenses = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
       const data = await getExpenses();
+      console.log("Fetched expenses:", data);
       setExpenses(data);
     } catch (error) {
       console.error("Error fetching expenses:", error);
@@ -62,18 +67,48 @@ const Expense = () => {
     }
   };
 
+  // Fetch accounts from database
+  const fetchAccounts = async () => {
+    setLoadingAccounts(true);
+    try {
+      const response = await getAccounts();
+      console.log("Accounts response:", response);
+      if (response?.data) {
+        setAccounts(response.data);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log("Accounts state changed:", accounts);
+  }, [accounts]);
+
   // Initial data fetch
   useEffect(() => {
-    fetchAllCategories();
-    fetchAllExpenses();
+    const loadInitialData = async () => {
+      await Promise.all([
+        fetchAccounts(),
+        fetchAllCategories(),
+        fetchAllExpenses()
+      ]);
+    };
+    loadInitialData();
   }, []);
+
+  useEffect(() => {
+    console.log("Current accounts:", accounts);
+  }, [accounts]);
 
   // Calculate total expenses whenever expenses or selectedAccount changes
   useEffect(() => {
     const filtered =
       selectedAccount === "All"
         ? expenses
-        : expenses.filter((expense) => expense.account === selectedAccount);
+        : expenses.filter((expense) => expense.accountId === selectedAccount);
     const total = filtered.reduce(
       (sum, expense) => sum + Number(expense.amount),
       0
@@ -83,24 +118,20 @@ const Expense = () => {
 
   const handleAddExpense = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      toast.error("User not authenticated");
-      return;
-    }
     try {
       const response = await addExpense(newExpense);
-      setExpenses([...expenses, response]);
-      setView("expense");
+      toast.success("Expense added successfully!");
       setNewExpense({
         description: "",
         amount: "",
         category: "",
         subcategory: "",
-        account: "",
-        date: "",
+        accountId: "", // Reset accountId
+        date: new Date().toISOString().split('T')[0],
       });
-      toast.success("Expense added successfully!");
+      // Refresh expenses list
+      const updatedExpenses = await getExpenses();
+      setExpenses(updatedExpenses);
     } catch (error) {
       console.error("Error adding expense:", error);
       toast.error("Error adding expense");
@@ -152,11 +183,16 @@ const Expense = () => {
     }
   };
 
-  // Filtered expenses based on selectedAccount
-  const filteredExpenses =
-    selectedAccount === "All"
-      ? expenses
-      : expenses.filter((expense) => expense.account === selectedAccount);
+  // Update filtered expenses
+  const filteredExpenses = expenses.filter(expense => {
+    if (selectedAccountFilter === "All") return true;
+    return expense.accountId?._id === selectedAccountFilter;
+  });
+
+  const filteredTotal = filteredExpenses.reduce(
+    (sum, expense) => sum + Number(expense.amount),
+    0
+  );
 
   // Prepare chart data
   const chartData = {
@@ -197,31 +233,28 @@ const Expense = () => {
       {/* Navigation Buttons */}
       <div className="mb-4 flex space-x-2">
         <button
-          className={`p-2 rounded-lg shadow ${
-            view === "expense"
-              ? "bg-blue-700 text-white"
-              : "bg-blue-500 text-white hover:bg-blue-700"
-          }`}
+          className={`p-2 rounded-lg shadow ${view === "expense"
+            ? "bg-blue-700 text-white"
+            : "bg-blue-500 text-white hover:bg-blue-700"
+            }`}
           onClick={() => setView("expense")}
         >
           Add Expense
         </button>
         <button
-          className={`p-2 rounded-lg shadow ${
-            view === "category"
-              ? "bg-green-700 text-white"
-              : "bg-green-500 text-white hover:bg-green-700"
-          }`}
+          className={`p-2 rounded-lg shadow ${view === "category"
+            ? "bg-green-700 text-white"
+            : "bg-green-500 text-white hover:bg-green-700"
+            }`}
           onClick={() => setView("category")}
         >
           Add Category
         </button>
         <button
-          className={`p-2 rounded-lg shadow ${
-            view === "subcategory"
-              ? "bg-yellow-700 text-white"
-              : "bg-yellow-500 text-white hover:bg-yellow-700"
-          }`}
+          className={`p-2 rounded-lg shadow ${view === "subcategory"
+            ? "bg-yellow-700 text-white"
+            : "bg-yellow-500 text-white hover:bg-yellow-700"
+            }`}
           onClick={() => setView("subcategory")}
         >
           Add Subcategory
@@ -298,16 +331,25 @@ const Expense = () => {
               className="p-2 border rounded w-1/6"
             />
             <select
-              value={newExpense.account}
+              value={newExpense.accountId}
               onChange={(e) =>
-                setNewExpense({ ...newExpense, account: e.target.value })
+                setNewExpense({ ...newExpense, accountId: e.target.value })
               }
               required
               className="p-2 border rounded w-1/6"
             >
               <option value="">Select Account</option>
-              <option value="Mobile Money">Mobile Money</option>
-              <option value="BTC">BTC</option>
+              {Array.isArray(accounts) && accounts.length > 0 ? (
+                accounts.map((account) => (
+                  <option key={account._id} value={account._id}>
+                    {account.name} ({account.type})
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>
+                  Loading accounts...
+                </option>
+              )}
             </select>
           </div>
 
@@ -378,81 +420,84 @@ const Expense = () => {
       )}
 
       {/* Filter by Account */}
-      <div className="mb-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-2">
-          Filter by Account
-        </h3>
+      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h3 className="text-xl font-bold mb-4">Filter by Account</h3>
         <select
-          value={selectedAccount}
-          onChange={(e) => setSelectedAccount(e.target.value)}
-          className="p-2 border rounded"
+          value={selectedAccountFilter}
+          onChange={(e) => setSelectedAccountFilter(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
         >
-          <option value="All">All</option>
-          <option value="Mobile Money">Mobile Money</option>
-          <option value="BTC">BTC</option>
+          <option value="All">All Accounts</option>
+          {accounts.map((account) => (
+            <option key={account._id} value={account._id}>
+              {account.name} ({account.type})
+            </option>
+          ))}
         </select>
       </div>
 
       {/* Total Expenses */}
-      <div className="mb-6">
+      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
         <h3 className="text-xl font-bold text-gray-800">
-          Total Expenses for {selectedAccount} Account
+          Total Expenses {selectedAccountFilter !== "All" && `for ${accounts.find(acc => acc._id === selectedAccountFilter)?.name}`}
         </h3>
         <p className="text-2xl font-bold text-red-600">
-          -${totalExpenses.toFixed(2)}
+          -${filteredTotal.toFixed(2)}
         </p>
       </div>
 
       {/* Expense Transactions List */}
-      <div className="mb-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-2">
-          Expense Transactions List
-        </h3>
-        <div className="overflow-auto">
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-bold mb-4">Expenses List</h3>
+        <div className="overflow-x-auto">
           <table className="min-w-full bg-white">
             <thead>
               <tr>
                 <th className="py-2 px-4 border-b text-left">Description</th>
                 <th className="py-2 px-4 border-b text-left">Amount</th>
                 <th className="py-2 px-4 border-b text-left">Category</th>
-                <th className="py-2 px-4 border-b text-left">Subcategory</th>
-                <th className="py-2 px-4 border-b text-left">Date</th>
                 <th className="py-2 px-4 border-b text-left">Account</th>
+                <th className="py-2 px-4 border-b text-left">Date</th>
               </tr>
             </thead>
             <tbody>
-              {filteredExpenses.map((expense, idx) => (
-                <tr key={idx}>
-                  <td className="py-2 px-4 border-b text-left">
-                    {expense.description}
-                  </td>
-                  <td className="py-2 px-4 border-b text-left text-red-600">
-                    -${Number(expense.amount).toFixed(2)}
-                  </td>
-                  <td className="py-2 px-4 border-b text-left">
-                    {expense.category}
-                  </td>
-                  <td className="py-2 px-4 border-b text-left">
-                    {expense.subcategory}
-                  </td>
-                  <td className="py-2 px-4 border-b text-left">
-                    {new Date(expense.date).toLocaleDateString()}
-                  </td>
-                  <td className="py-2 px-4 border-b text-left">
-                    {expense.account}
+              {filteredExpenses.length > 0 ? (
+                filteredExpenses.map((expense) => (
+                  <tr key={expense._id}>
+                    <td className="py-2 px-4 border-b text-left">
+                      {expense.description}
+                    </td>
+                    <td className="py-2 px-4 border-b text-left">
+                      ${Number(expense.amount).toFixed(2)}
+                    </td>
+                    <td className="py-2 px-4 border-b text-left">
+                      {expense.category}
+                    </td>
+                    <td className="py-2 px-4 border-b text-left">
+                      {expense.accountId?.name} ({expense.accountId?.type})
+                    </td>
+                    <td className="py-2 px-4 border-b text-left">
+                      {new Date(expense.date).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="py-4 text-center text-gray-500">
+                    No expenses found {selectedAccountFilter !== "All" && "for this account"}
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
       {/* Expenses Chart */}
-      <div className="mb-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-2">Expenses Chart</h3>
-        <div className="p-4 shadow-lg bg-white rounded-lg">
-          <Bar data={chartData} />
+      <div className="bg-white p-6 rounded-lg shadow-md mt-6">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">Expenses by Category</h3>
+        <div className="h-64">
+          <Bar data={chartData} options={{ maintainAspectRatio: false }} />
         </div>
       </div>
     </div>
