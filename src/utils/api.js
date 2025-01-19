@@ -93,4 +93,45 @@ export const getCategories = async () => {
   }
 };
 
+export const addAccount = async (accountData) => {
+  try {
+    const response = await axiosInstance.post("/accounts", accountData);
+    return response.data;
+  } catch (error) {
+    console.error("Error adding account:", error);
+    throw error;
+  }
+};
+
+export const getAccounts = async () => {
+  try {
+    const response = await axiosInstance.get("/accounts");
+    console.log('API Response:', response);
+    return response;
+  } catch (error) {
+    console.error("Error fetching accounts:", error);
+    throw error;
+  }
+};
+
+export const createBudget = async (budgetData) => {
+  try {
+    const response = await axiosInstance.post("/budgets", budgetData);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating budget:", error);
+    throw error;
+  }
+};
+
+export const getBudgets = async () => {
+  try {
+    const response = await axiosInstance.get("/budgets");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching budgets:", error);
+    throw error;
+  }
+};
+
 export default axiosInstance;
