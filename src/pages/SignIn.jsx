@@ -1,32 +1,50 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { loginUser } from "../utils/api";
 
 const SignIn = ({ onLogin }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSignIn = (e) => {
+  const handleSignIn = async (e) => {
     e.preventDefault();
-    // Handle sign-in logic here
-    console.log('User signed in:', { email, password });
-    onLogin();
-    navigate('/');
+    try {
+      const data = await loginUser({ email, password });
+      localStorage.setItem("token", data.token);
+      onLogin();
+      navigate("/");
+      toast.success("Successfully signed in!");
+    } catch (error) {
+      setError("Invalid credentials");
+      toast.error("Invalid credentials");
+    }
   };
 
   return (
     <div className="flex items-center justify-center h-screen">
       <div className="bg-white p-8 rounded-lg shadow-2xl w-96">
-        <h1 className="text-2xl font-bold mb-4 text-left text-blue-600">Taskforce Expense Tracker</h1>
+        <h1 className="text-2xl font-bold mb-4 text-left text-blue-600">
+          Taskforce Expense Tracker
+        </h1>
         <h2 className="text-xl font-bold mb-4">Sign In</h2>
         <div className="mb-4 p-4 bg-gray-50 rounded-lg shadow-inner">
           <h3 className="text-lg font-bold mb-2">Demo User</h3>
-          <p><strong>Email:</strong> demo@taskforce.com</p>
-          <p><strong>Password:</strong> demo123</p>
+          <p>
+            <strong>Email:</strong> demo@taskforce.com
+          </p>
+          <p>
+            <strong>Password:</strong> demo123
+          </p>
         </div>
         <form onSubmit={handleSignIn}>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+            <label
+              className="block text-gray-700 text-sm font-bold mb-2"
+              htmlFor="email"
+            >
               Email
             </label>
             <input
@@ -40,7 +58,10 @@ const SignIn = ({ onLogin }) => {
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
+            <label
+              className="block text-gray-700 text-sm font-bold mb-2"
+              htmlFor="password"
+            >
               Password
             </label>
             <input
@@ -53,12 +74,18 @@ const SignIn = ({ onLogin }) => {
               required
             />
           </div>
-          <button type="submit" className="bg-blue-500 text-white p-2 rounded-lg shadow hover:bg-blue-700 w-full">
+          <button
+            type="submit"
+            className="bg-blue-500 text-white p-2 rounded-lg shadow hover:bg-blue-700 w-full"
+          >
             Sign In
           </button>
         </form>
         <p className="mt-4 text-center">
-          Don't have an account? <a href="/signup" className="text-blue-500 hover:underline">Sign Up</a>
+          Don't have an account?{" "}
+          <a href="/signup" className="text-blue-500 hover:underline">
+            Sign Up
+          </a>
         </p>
       </div>
     </div>

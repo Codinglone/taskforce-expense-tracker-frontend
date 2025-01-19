@@ -1,23 +1,33 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { registerUser } from '../utils/api';
 
 const SignUp = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSignUp = (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
-    // Handle sign-up logic here
-    console.log('User signed up:', { name, email, password });
-    navigate('/signin');
+    try {
+      await registerUser({ name, email, password });
+      navigate('/signin');
+      toast.success("Successfully registered! Please sign in.");
+    } catch (err) {
+      setError('Error registering user');
+      toast.error("Error registering user");
+    }
   };
 
   return (
-    <div className="flex items-center justify-center h-screen">
+    <div className="flex items-center justify-center h-screen bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-2xl w-96">
-        <h2 className="text-2xl font-bold mb-4">Sign Up</h2>
+        <h1 className="text-2xl font-bold mb-4 text-left text-blue-600">Taskforce Expense Tracker</h1>
+        <h2 className="text-xl font-bold mb-4 text-left">Sign Up</h2>
+        {error && <p className="text-red-500 text-center">{error}</p>}
         <form onSubmit={handleSignUp}>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
