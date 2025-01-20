@@ -33,10 +33,10 @@ const SignIn = () => {
         <div className="mb-4 p-4 bg-gray-50 rounded-lg shadow-inner">
           <h3 className="text-lg font-bold mb-2">Demo User</h3>
           <p>
-            <strong>Email:</strong> demo@taskforce.com
+            <strong>Email:</strong> erica@gmail.com
           </p>
           <p>
-            <strong>Password:</strong> demo123
+            <strong>Password:</strong> 123
           </p>
         </div>
         <form onSubmit={handleSignIn}>
