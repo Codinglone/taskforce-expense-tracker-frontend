@@ -1,8 +1,20 @@
-# React + Vite
+# Installation Instructions
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Frontend
 
-Currently, two official plugins are available:
+0. Clone the repository:   ```bash
+   git clone https://github.com/Codinglone/taskforce-expense-tracker-frontend.git   ```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Navigate to the frontend directory:   ```bash
+   cd taskforce-expense-tracker-frontend   ```
+
+2. Install dependencies:   ```bash
+   npm install   ```
+
+3. Create a `.env` file in the frontend root directory and add the following:   ```
+   VITE_API_BASE_URL=http://localhost:5000/api  ```
+
+4. Start the development server:   ```bash
+   npm run dev   ```
+
+The frontend application will be available at `http://localhost:5173`
