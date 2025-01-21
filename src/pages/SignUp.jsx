@@ -14,7 +14,7 @@ const SignUp = () => {
   const handleSignUp = async (e) => {
     e.preventDefault();
     try {
-      const response = await axiosInstance.post("/auth/register",{ name, email, password });
+      const response = await axiosInstance.post("/auth/register", { name, email, password });
       const { token } = response.data;
       login(token);
       toast.success("Registered Successfully!");

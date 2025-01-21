@@ -131,12 +131,12 @@ const Expense = () => {
     try {
       // Find the category ID based on the selected category name
       const selectedCategoryId = categoryIds[newExpense.category];
-      
+
       // Find the subcategory ID
-      const selectedCategory = await getCategories().then(cats => 
+      const selectedCategory = await getCategories().then(cats =>
         cats.find(cat => cat.name === newExpense.category)
       );
-      
+
       const selectedSubcategoryId = selectedCategory?.subcategories.find(
         sub => sub.name === newExpense.subcategory
       )?._id;
@@ -155,13 +155,13 @@ const Expense = () => {
       };
 
       const response = await addExpense(expenseData);
-      
+
       // Check for budget notification in response
       if (response.data?.budgetNotification) {
         console.log('Budget notification received:', response.data.budgetNotification);
         addNotification(response.data.budgetNotification);
       }
-      
+
       toast.success("Expense added successfully!");
       fetchAllExpenses();
       setNewExpense({
