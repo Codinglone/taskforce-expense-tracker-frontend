@@ -1,6 +1,6 @@
-import React, { useContext, useState } from "react";
+import React, { useContext } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { FaSignOutAlt, FaBell } from "react-icons/fa";
+import { FaSignOutAlt } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 import { GrTransaction } from "react-icons/gr";
 import { FaBook, FaGear } from "react-icons/fa6";
@@ -9,8 +9,7 @@ import { GiReceiveMoney, GiPayMoney } from "react-icons/gi";
 import { AuthContext } from "../context/AuthContext";
 
 const Sidebar = () => {
-  const { logout } = useContext(AuthContext);
-  const [showNotifications, setShowNotifications] = useState(false);
+  const { logout, user } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const links = [
@@ -28,29 +27,18 @@ const Sidebar = () => {
     navigate('/signin');
   };
 
-  const notifications = [
-    { id: 1, message: "New transaction added" },
-    { id: 2, message: "Budget exceeded" },
-    { id: 3, message: "Profile updated" },
-  ];
-
   return (
     <div className="relative w-64 h-[94vh] bg-gray-100 border-4 border-white shadow-xl rounded-2xl my-4 mx-2 text-gray-800 flex flex-col justify-between">
       <div>
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center p-4 gap-3">
           <img
             src="https://imgs.search.brave.com/c7bLCe7j_VgSXV0ocTj8kxiH5V0CISY7Qw80Lq76LFY/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS12ZWN0b3Iv/YnVzaW5lc3NtYW4t/Y2hhcmFjdGVyLWF2/YXRhci1pc29sYXRl/ZF8yNDg3Ny02MDEx/MS5qcGc_c2VtdD1h/aXNfaHlicmlk"
             alt="Profile"
-            className="w-12 h-12 rounded-full border-2 border-gray-300"
+            className="w-12 h-12 rounded-full"
           />
-          <div className="relative">
-            <FaBell
-              className="text-xl cursor-pointer"
-              onClick={() => setShowNotifications(!showNotifications)}
-            />
-            {notifications.length > 0 && (
-              <span className="absolute top-0 right-0 inline-block w-2 h-2 bg-red-600 rounded-full"></span>
-            )}
+          <div className="flex flex-col">
+            <span className="font-semibold text-sm">{user?.name || 'User'}</span>
+            <span className="text-xs text-gray-600">{user?.email}</span>
           </div>
         </div>
         <nav className="flex-grow">
@@ -79,24 +67,6 @@ const Sidebar = () => {
         <FaSignOutAlt className="mr-2" />
         Logout
       </button>
-      {showNotifications && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="fixed inset-0 bg-black opacity-50"></div>
-          <div className="bg-white rounded-lg shadow-lg p-4 max-w-sm w-full z-50">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">Notifications</h3>
-              <button onClick={() => setShowNotifications(false)} className="text-gray-600 hover:text-gray-800">
-                &times;
-              </button>
-            </div>
-            {notifications.map((notification) => (
-              <div key={notification.id} className="bg-gray-100 p-2 rounded mb-2">
-                {notification.message}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
