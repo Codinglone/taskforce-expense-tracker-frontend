@@ -245,7 +245,7 @@ const Income = () => {
 
       {/* Category Modal */}
       {showCategoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-96">
             <h3 className="text-xl font-bold mb-4">Add New Category</h3>
             <form onSubmit={handleAddCategory}>
@@ -279,7 +279,7 @@ const Income = () => {
 
       {/* Subcategory Modal */}
       {showSubcategoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-96">
             <h3 className="text-xl font-bold mb-4">Add New Subcategory</h3>
             <form onSubmit={handleAddSubcategory}>
@@ -414,7 +414,7 @@ const Income = () => {
                 onChange={(e) =>
                   setNewIncome({ ...newIncome, accountId: e.target.value })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
                 required
               >
                 <option value="">Select Account</option>
