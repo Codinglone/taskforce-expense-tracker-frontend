@@ -107,7 +107,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{
-      auth, login, logout, notifications, addNotification, removeNotification
+      auth, login, logout, notifications, addNotification, removeNotification, user: auth.user
     }}>
       {!auth.loading && children}
       <div className="fixed top-4 right-4 z-50">

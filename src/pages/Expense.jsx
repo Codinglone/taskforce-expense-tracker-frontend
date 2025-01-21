@@ -512,7 +512,7 @@ const Expense = () => {
                       `$${Number(expense.amount).toFixed(2)}`,
                       expense.category?.name || expense.category || 'N/A',
                       expense.subcategory?.name || expense.subcategory || 'N/A',
-                      `${expense.accountId?.name} (${expense.accountId?.type})`,
+                      expense.accountId?.name,
                       new Date(expense.date).toLocaleDateString()
                     ].map((cell, index) => (
                       <td key={index} className="py-2 px-4 border-b text-left">{cell}</td>
