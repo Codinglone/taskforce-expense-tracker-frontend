@@ -34,7 +34,7 @@ const Dashboard = () => {
       // Calculate totals
       const totalInc = incomeData.reduce((sum, inc) => sum + parseFloat(inc.amount), 0);
       const totalExp = expensesData.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-      
+
       setTotalIncome(totalInc);
       setTotalExpenses(totalExp);
       setTotalBalance(totalInc - totalExp);
@@ -73,7 +73,7 @@ const Dashboard = () => {
 
   const getMonthlyData = (incomeData, expensesData) => {
     const months = {};
-    
+
     // Process income
     incomeData.forEach(inc => {
       const date = new Date(inc.date);
@@ -97,8 +97,8 @@ const Dashboard = () => {
     });
 
     return Object.values(months).sort((a, b) => {
-      const months = ['January', 'February', 'March', 'April', 'May', 'June', 
-                     'July', 'August', 'September', 'October', 'November', 'December'];
+      const months = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
       return months.indexOf(a.name) - months.indexOf(b.name);
     });
   };
@@ -121,10 +121,7 @@ const Dashboard = () => {
           <h3 className="text-xl font-bold text-gray-800">Total Balance</h3>
           <p className="text-2xl font-bold text-green-600">${totalBalance.toFixed(2)}</p>
         </div>
-        <div className="w-1/2 p-4 shadow-lg w-[22%] bg-white rounded-lg hover:shadow-2xl hover:transition hover:cursor-pointer">
-          <h3 className="text-xl font-bold text-gray-800">Remaining Budget</h3>
-          <p className="text-2xl font-bold text-blue-900">${Math.max(0, totalBalance).toFixed(2)}</p>
-        </div>
+
       </div>
       <div className="flex w-full justify-between">
         <div className="flex w-[48%] h-96 flex-col">
