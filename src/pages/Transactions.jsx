@@ -30,11 +30,10 @@ const Transactions = () => {
         description: income.description,
         amount: income.amount,
         type: 'income',
-        // Update these mappings to match your API response structure
         category: income.category?.name || 'Uncategorized',
         subcategory: income.subcategory?.name || 'None',
-        account: income.accountId?.name || 'No Account', // Changed from account to accountId
-        accountType: income.accountId?.type || 'Unknown', // Add account type
+        account: income.accountId?.name || 'No Account',
+        accountType: income.accountId?.type || 'Unknown',
         date: new Date(income.date).toISOString().split('T')[0]
       }));
 
@@ -43,11 +42,10 @@ const Transactions = () => {
         description: expense.description,
         amount: expense.amount,
         type: 'expense',
-        // Update these mappings to match your API response structure
         category: expense.category?.name || 'Uncategorized',
         subcategory: expense.subcategory?.name || 'None',
-        account: expense.accountId?.name || 'No Account', // Changed from account to accountId
-        accountType: expense.accountId?.type || 'Unknown', // Add account type
+        account: expense.accountId?.name || 'No Account',
+        accountType: expense.accountId?.type || 'Unknown',
         date: new Date(expense.date).toISOString().split('T')[0]
       }));
 
@@ -87,7 +85,6 @@ const Transactions = () => {
     calculateTotals();
   }, [selectedType, transactions]);
 
-  // Filter transactions
   const filteredTransactions = React.useMemo(() => {
     return transactions.filter(transaction => {
       const typeMatch = selectedType === "All" || transaction.type === selectedType;
@@ -105,9 +102,9 @@ const Transactions = () => {
           data: filteredTransactions.map(t => t.amount),
           backgroundColor: filteredTransactions.map(t => {
             if (t.type === 'income') {
-              return 'rgba(75, 192, 192, 0.6)'; // Green for income
+              return 'rgba(75, 192, 192, 0.6)';
             } else {
-              return 'rgba(255, 99, 132, 0.6)'; // Red for expenses
+              return 'rgba(255, 99, 132, 0.6)';
             }
           }),
           borderColor: filteredTransactions.map(t => {

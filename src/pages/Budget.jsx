@@ -31,7 +31,6 @@ const Budget = () => {
     period: "monthly",
   });
 
-  // Single fetch function for initial data
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -52,7 +51,6 @@ const Budget = () => {
     }
   };
 
-  // Initial data fetch only
   useEffect(() => {
     fetchData();
   }, []);
