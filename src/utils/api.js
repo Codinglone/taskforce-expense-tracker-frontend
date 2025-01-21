@@ -32,10 +32,10 @@ export const addIncome = async (incomeData) => {
 
 export const addExpense = async (expenseData) => {
   try {
-    const response = await axiosInstance.post("/expenses", expenseData);
-    return response.data;
+    const response = await axiosInstance.post('/expenses', expenseData);
+    return response;  // Return the full response object
   } catch (error) {
-    console.error("Error adding expense:", error);
+    console.error('Error adding expense:', error);
     throw error;
   }
 };
@@ -62,20 +62,18 @@ export const getExpenses = async () => {
 
 export const addCategory = async (categoryData) => {
   try {
-    const response = await axiosInstance.post("/categories/category", categoryData);
+    console.log('Sending category data:', categoryData);
+    const response = await axiosInstance.post("/categories", { name: categoryData.name });
     return response.data;
   } catch (error) {
-    console.error("Error adding category:", error);
+    console.error("Error adding category:", error.response?.data || error.message);
     throw error;
   }
 };
 
 export const addSubcategory = async (subcategoryData) => {
   try {
-    const response = await axiosInstance.post(
-      "/categories/subcategory",
-      subcategoryData
-    );
+    const response = await axiosInstance.post("/categories/subcategory", subcategoryData);
     return response.data;
   } catch (error) {
     console.error("Error adding subcategory:", error);
@@ -91,6 +89,26 @@ export const getCategories = async () => {
     console.error("Error fetching categories:", error);
     throw error;
   }
+};
+
+export const getIncomeCategories = async () => {
+  try {
+    const response = await axiosInstance.get('/income-categories');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching income categories:', error);
+    throw error;
+  }
+};
+
+export const createIncomeCategory = async (categoryData) => {
+  const response = await axiosInstance.post('/income-categories', categoryData);
+  return response.data;
+};
+
+export const updateIncomeCategory = async (categoryId, categoryData) => {
+  const response = await axiosInstance.put(`/income-categories/${categoryId}`, categoryData);
+  return response.data;
 };
 
 export const addAccount = async (accountData) => {
@@ -116,20 +134,20 @@ export const getAccounts = async () => {
 
 export const createBudget = async (budgetData) => {
   try {
-    const response = await axiosInstance.post("/budgets", budgetData);
+    const response = await axiosInstance.post('/budgets', budgetData);
     return response.data;
   } catch (error) {
-    console.error("Error creating budget:", error);
+    console.error('Error creating budget:', error);
     throw error;
   }
 };
 
 export const getBudgets = async () => {
   try {
-    const response = await axiosInstance.get("/budgets");
+    const response = await axiosInstance.get('/budgets');
     return response.data;
   } catch (error) {
-    console.error("Error fetching budgets:", error);
+    console.error('Error fetching budgets:', error);
     throw error;
   }
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Bar } from "react-chartjs-2";
 import "chart.js/auto";
 import { toast } from "react-toastify";
@@ -10,11 +10,12 @@ import {
   addSubcategory,
   getAccounts,
 } from "../utils/api";
-
+import { AuthContext } from "../context/AuthContext";
 const Expense = () => {
 
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [categoryIds, setCategoryIds] = useState({});
   const [subcategories, setSubcategories] = useState({});
   const [view, setView] = useState("expense");
   const [selectedAccount, setSelectedAccount] = useState("All");
@@ -34,19 +35,28 @@ const Expense = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [newSubcategory, setNewSubcategory] = useState("");
 
+  const { addNotification } = useContext(AuthContext);
+
   // Fetch all categories from server
   const fetchAllCategories = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
     try {
       const data = await getCategories();
-      const catNames = data.map((cat) => cat.name);
-      const subcatMap = {};
-      data.forEach((cat) => {
-        subcatMap[cat.name] = cat.subcategories || [];
-      });
-      setCategories(catNames);
-      setSubcategories(subcatMap);
+      if (Array.isArray(data)) {
+        // Set categories names
+        setCategories(data.map(cat => cat.name));
+
+        // Create subcategories mapping
+        const subCats = {};
+        const catIds = {};
+
+        data.forEach(cat => {
+          subCats[cat.name] = cat.subcategories.map(sub => sub.name);
+          catIds[cat.name] = cat._id;
+        });
+
+        setSubcategories(subCats);
+        setCategoryIds(catIds);
+      }
     } catch (error) {
       console.error("Error fetching categories:", error);
       toast.error("Error fetching categories");
@@ -119,58 +129,86 @@ const Expense = () => {
   const handleAddExpense = async (e) => {
     e.preventDefault();
     try {
-      const response = await addExpense(newExpense);
+      // Find the category ID based on the selected category name
+      const selectedCategoryId = categoryIds[newExpense.category];
+      
+      // Find the subcategory ID
+      const selectedCategory = await getCategories().then(cats => 
+        cats.find(cat => cat.name === newExpense.category)
+      );
+      
+      const selectedSubcategoryId = selectedCategory?.subcategories.find(
+        sub => sub.name === newExpense.subcategory
+      )?._id;
+
+      if (!selectedCategoryId || !selectedSubcategoryId) {
+        toast.error("Invalid category or subcategory selection");
+        return;
+      }
+
+      // Create the expense with proper IDs
+      const expenseData = {
+        ...newExpense,
+        category: selectedCategoryId,
+        subcategory: selectedSubcategoryId,
+        amount: Number(newExpense.amount) // Ensure amount is a number
+      };
+
+      const response = await addExpense(expenseData);
+      
+      // Check for budget notification in response
+      if (response.data?.budgetNotification) {
+        console.log('Budget notification received:', response.data.budgetNotification);
+        addNotification(response.data.budgetNotification);
+      }
+      
       toast.success("Expense added successfully!");
+      fetchAllExpenses();
       setNewExpense({
         description: "",
         amount: "",
         category: "",
         subcategory: "",
-        accountId: "", // Reset accountId
+        accountId: "",
         date: new Date().toISOString().split('T')[0],
       });
-      // Refresh expenses list
-      const updatedExpenses = await getExpenses();
-      setExpenses(updatedExpenses);
     } catch (error) {
       console.error("Error adding expense:", error);
-      toast.error("Error adding expense");
+      const errorMessage = error.response?.data?.message || "Error adding expense";
+      toast.error(errorMessage);
     }
   };
 
   const handleAddCategory = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      toast.error("User not authenticated");
-      return;
-    }
     try {
-      await addCategory({ name: newCategory });
+      if (!newCategory.trim()) {
+        toast.error("Please enter a category name");
+        return;
+      }
+
+      await addCategory({ name: newCategory.trim() });
       toast.success("Category added successfully!");
       setNewCategory("");
       setView("expense");
-      await fetchAllCategories(); // Refresh categories
+      await fetchAllCategories();
     } catch (error) {
-      console.error("Error adding category:", error);
-      toast.error("Error adding category");
+      const errorMessage = error.response?.data?.message || "Error adding category";
+      console.error("Error adding category:", errorMessage);
+      toast.error(errorMessage);
     }
   };
 
   const handleAddSubcategory = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
-    if (!token) {
-      toast.error("User not authenticated");
-      return;
-    }
     if (!selectedCategory) {
       toast.error("Please select a category first");
       return;
     }
     try {
+      const categoryId = categoryIds[selectedCategory];
       await addSubcategory({
-        category: selectedCategory,
+        category: categoryId,
         name: newSubcategory,
       });
       toast.success("Subcategory added successfully!");
@@ -453,38 +491,39 @@ const Expense = () => {
           <table className="min-w-full bg-white">
             <thead>
               <tr>
-                <th className="py-2 px-4 border-b text-left">Description</th>
-                <th className="py-2 px-4 border-b text-left">Amount</th>
-                <th className="py-2 px-4 border-b text-left">Category</th>
-                <th className="py-2 px-4 border-b text-left">Account</th>
-                <th className="py-2 px-4 border-b text-left">Date</th>
+                {[
+                  'Description',
+                  'Amount',
+                  'Category',
+                  'Subcategory',
+                  'Account',
+                  'Date'
+                ].map((header, index) => (
+                  <th key={index} className="py-2 px-4 border-b text-left">{header}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {filteredExpenses.length > 0 ? (
                 filteredExpenses.map((expense) => (
                   <tr key={expense._id}>
-                    <td className="py-2 px-4 border-b text-left">
-                      {expense.description}
-                    </td>
-                    <td className="py-2 px-4 border-b text-left">
-                      ${Number(expense.amount).toFixed(2)}
-                    </td>
-                    <td className="py-2 px-4 border-b text-left">
-                      {expense.category}
-                    </td>
-                    <td className="py-2 px-4 border-b text-left">
-                      {expense.accountId?.name} ({expense.accountId?.type})
-                    </td>
-                    <td className="py-2 px-4 border-b text-left">
-                      {new Date(expense.date).toLocaleDateString()}
-                    </td>
+                    {[
+                      expense.description,
+                      `$${Number(expense.amount).toFixed(2)}`,
+                      expense.category?.name || expense.category || 'N/A',
+                      expense.subcategory?.name || expense.subcategory || 'N/A',
+                      `${expense.accountId?.name} (${expense.accountId?.type})`,
+                      new Date(expense.date).toLocaleDateString()
+                    ].map((cell, index) => (
+                      <td key={index} className="py-2 px-4 border-b text-left">{cell}</td>
+                    ))}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="py-4 text-center text-gray-500">
-                    No expenses found {selectedAccountFilter !== "All" && "for this account"}
+                  <td colSpan="6" className="py-4 text-center text-gray-500">
+                    <span>No expenses found</span>
+                    {selectedAccountFilter !== "All" && " for this account"}
                   </td>
                 </tr>
               )}

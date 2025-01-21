@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import {
   addAccount,
@@ -6,15 +7,15 @@ import {
   getAccounts,
   createBudget,
 } from "../utils/api";
+import BudgetProgress from "../components/BudgetProgress";
 
 const Budget = () => {
-  // State Management
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [budgets, setBudgets] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const { addNotification } = useContext(AuthContext);
 
-  // Form States
   const [newAccount, setNewAccount] = useState({
     name: "",
     type: "bank",
@@ -30,58 +31,42 @@ const Budget = () => {
     period: "monthly",
   });
 
-  useEffect(() => {
-    fetchAccounts();
-    fetchBudgets();
-  }, []);
-
-  const fetchAccounts = async () => {
+  // Single fetch function for initial data
+  const fetchData = async () => {
     setLoading(true);
-    setError(null);
     try {
-      const response = await getAccounts();
-      console.log("Raw API response:", response);
+      const [accountsResponse, budgetsResponse] = await Promise.all([
+        getAccounts(),
+        getBudgets()
+      ]);
 
-      // Check if response has data property
-      const accountsData = response.data || response;
-      console.log("Accounts data to be set:", accountsData);
+      setAccounts(accountsResponse.data || []);
+      setBudgets(budgetsResponse || []);
 
-      setAccounts(Array.isArray(accountsData) ? accountsData : []);
-
-      // Verify state update
-      console.log("Accounts state after update:", accounts);
-    } catch (error) {
-      console.error("Error fetching accounts:", error);
-      setError("Failed to fetch accounts");
-      toast.error("Failed to fetch accounts");
-      setAccounts([]);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Failed to load data");
+      toast.error("Failed to load data");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchBudgets = async () => {
-    try {
-      const response = await getBudgets();
-      console.log("Raw budgets response:", response);
-      const budgetsData = response.data || response;
-      console.log("Budgets data to set:", budgetsData);
-      setBudgets(Array.isArray(budgetsData) ? budgetsData : []);
-    } catch (error) {
-      console.error("Error fetching budgets:", error);
-      toast.error("Failed to fetch budgets");
-      setBudgets([]);
-    }
-  };
+  // Initial data fetch only
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleAccountSubmit = async (e) => {
     e.preventDefault();
     try {
       await addAccount(newAccount);
       toast.success("Account added successfully");
-      fetchAccounts();
+      const accountsResponse = await getAccounts();
+      setAccounts(accountsResponse.data || []);
       setNewAccount({ name: "", type: "bank", description: "" });
     } catch (error) {
+      console.error("Account creation error:", error);
       toast.error("Failed to add account");
     }
   };
@@ -89,9 +74,26 @@ const Budget = () => {
   const handleBudgetSubmit = async (e) => {
     e.preventDefault();
     try {
+      if (!newBudget.accountId) {
+        toast.error("Please select an account");
+        return;
+      }
+      if (!newBudget.amount || newBudget.amount <= 0) {
+        toast.error("Please enter a valid amount");
+        return;
+      }
+      if (!newBudget.startDate || !newBudget.endDate) {
+        toast.error("Please select start and end dates");
+        return;
+      }
+
       await createBudget(newBudget);
       toast.success("Budget created successfully");
-      fetchBudgets();
+
+      // Fetch updated budgets
+      const budgetsResponse = await getBudgets();
+      setBudgets(budgetsResponse || []);
+
       setNewBudget({
         amount: "",
         accountId: "",
@@ -101,6 +103,7 @@ const Budget = () => {
         period: "monthly",
       });
     } catch (error) {
+      console.error("Budget creation error:", error);
       toast.error("Failed to create budget");
     }
   };
@@ -159,74 +162,27 @@ const Budget = () => {
         </form>
       </div>
 
-      {/* Accounts List */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">Your Accounts</h3>
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="text-center py-4">Loading accounts...</div>
-          ) : error ? (
-            <div className="text-center py-4 text-red-600">{error}</div>
-          ) : accounts?.length > 0 ? (
-            <table className="min-w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Description
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {accounts.map((account, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                      {account.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          account.type === "bank"
-                            ? "bg-blue-100 text-blue-800"
-                            : account.type === "mobile_money"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {account.type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">{account.description}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                        active
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="text-center py-4">No accounts found</div>
-          )}
-        </div>
-      </div>
-
       {/* Budget Creation Section */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">
-          Create New Budget
-        </h3>
+        <h3 className="text-xl font-bold text-gray-800 mb-4">Create New Budget</h3>
         <form onSubmit={handleBudgetSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <select
+              value={newBudget.accountId}
+              onChange={(e) =>
+                setNewBudget({ ...newBudget, accountId: e.target.value })
+              }
+              className="p-2 border rounded-md"
+              required
+            >
+              <option value="">Select Account</option>
+              {accounts.map((account) => (
+                <option key={account._id} value={account._id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+
             <input
               type="number"
               placeholder="Budget Amount"
@@ -237,41 +193,7 @@ const Budget = () => {
               className="p-2 border rounded-md"
               required
             />
-            <select
-              value={newBudget.accountId}
-              onChange={(e) =>
-                setNewBudget({ ...newBudget, accountId: e.target.value })
-              }
-              className="p-2 border rounded-md"
-              required
-            >
-              <option value="">Select Account</option>
-              {accounts?.map((account) => (
-                <option key={account._id} value={account._id}>
-                  {account.name} ({account.type})
-                </option>
-              ))}
-            </select>
-            <input
-              type="date"
-              placeholder="Start Date"
-              value={newBudget.startDate}
-              onChange={(e) =>
-                setNewBudget({ ...newBudget, startDate: e.target.value })
-              }
-              className="p-2 border rounded-md"
-              required
-            />
-            <input
-              type="date"
-              placeholder="End Date"
-              value={newBudget.endDate}
-              onChange={(e) =>
-                setNewBudget({ ...newBudget, endDate: e.target.value })
-              }
-              className="p-2 border rounded-md"
-              required
-            />
+
             <select
               value={newBudget.period}
               onChange={(e) =>
@@ -284,81 +206,118 @@ const Budget = () => {
               <option value="monthly">Monthly</option>
               <option value="yearly">Yearly</option>
             </select>
+
+            <input
+              type="date"
+              value={newBudget.startDate}
+              onChange={(e) =>
+                setNewBudget({ ...newBudget, startDate: e.target.value })
+              }
+              className="p-2 border rounded-md"
+              required
+            />
+
+            <input
+              type="date"
+              value={newBudget.endDate}
+              onChange={(e) =>
+                setNewBudget({ ...newBudget, endDate: e.target.value })
+              }
+              className="p-2 border rounded-md"
+              required
+            />
+
             <input
               type="number"
               placeholder="Alert Threshold (%)"
               value={newBudget.alertThreshold}
               onChange={(e) =>
-                setNewBudget({ ...newBudget, alertThreshold: e.target.value })
+                setNewBudget({
+                  ...newBudget,
+                  alertThreshold: Math.min(100, Math.max(1, e.target.value)),
+                })
               }
-              className="p-2 border rounded-md"
               min="1"
               max="100"
+              className="p-2 border rounded-md"
               required
             />
           </div>
           <button
             type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
           >
             Create Budget
           </button>
         </form>
       </div>
 
-      {budgets?.length > 0 ? (
-        <table className="min-w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Account
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Amount
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Period
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Dates
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Status
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {budgets.map((budget, index) => (
-              <tr key={budget._id || index}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {budget.accountId?.name || "N/A"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  ${parseFloat(budget.amount).toLocaleString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">{budget.period}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {new Date(budget.startDate).toLocaleDateString()} -
-                  {new Date(budget.endDate).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      budget.status === "active"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {budget.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <div className="text-center py-4">No budgets found</div>
-      )}
+      {/* Budgets List */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">Your Budgets</h3>
+        {loading ? (
+          <div className="text-center py-4">Loading budgets...</div>
+        ) : error ? (
+          <div className="text-center py-4 text-red-600">{error}</div>
+        ) : budgets.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Account
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Progress
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Period
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Dates
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {budgets.map((budget) => (
+                  <tr key={budget._id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {budget.accountId?.name || "N/A"}
+                    </td>
+                    <td className="px-6 py-4 w-64">
+                      <BudgetProgress budget={budget} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap capitalize">
+                      {budget.period}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {new Date(budget.startDate).toLocaleDateString()} -
+                      {new Date(budget.endDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${budget.status === "active"
+                            ? "bg-green-100 text-green-800"
+                            : budget.status === "exceeded"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                      >
+                        {budget.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-4">No budgets found</div>
+        )}
+      </div>
     </div>
   );
 };

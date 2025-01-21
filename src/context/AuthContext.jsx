@@ -1,10 +1,39 @@
 import React, { createContext, useState, useEffect } from "react";
-import axios from "axios";
+import { toast } from "react-toastify";
 import axiosInstance from "../utils/api";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  const [notifications, setNotifications] = useState([]);
+
+  const addNotification = (notification) => {
+    if (notification.type === 'error') {
+      toast.error(notification.message);
+    } else if (notification.type === 'warning') {
+      toast.warning(notification.message);
+    } else if (notification.type === 'success') {
+      toast.success(notification.message);
+    } else {
+      toast.info(notification.message);
+    }
+    setNotifications(prev => {
+      // Check if notification with same ID already exists
+      const exists = prev.some(n => n.id === notification.id);
+      if (exists) return prev;
+      return [notification, ...prev];
+    });
+
+    // Automatically remove notification after 5 seconds
+    setTimeout(() => {
+      removeNotification(notification.id);
+    }, 5000);
+  };
+
+  const removeNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
   const [auth, setAuth] = useState({
     token: localStorage.getItem("token") || null,
     isAuthenticated: false,
@@ -72,11 +101,29 @@ export const AuthProvider = ({ children }) => {
       user: null,
     });
     toast.success("Logged out successfully!");
+    // Clear all notifications on logout
+    setNotifications([]);
   };
 
   return (
-    <AuthContext.Provider value={{ auth, login, logout }}>
+    <AuthContext.Provider value={{
+      auth, login, logout, notifications, addNotification, removeNotification
+    }}>
       {!auth.loading && children}
+      <div className="fixed top-4 right-4 z-50">
+        {notifications.map(notification => (
+          <div
+            key={notification.id}
+            className={`mb-2 p-4 rounded-lg shadow-lg ${notification.type === 'error' ? 'bg-red-100 text-red-800' :
+                notification.type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                  notification.type === 'success' ? 'bg-green-100 text-green-800' :
+                    'bg-blue-100 text-blue-800'
+              }`}
+          >
+            {notification.message}
+          </div>
+        ))}
+      </div>
     </AuthContext.Provider>
   );
 };
