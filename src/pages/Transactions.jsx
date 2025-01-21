@@ -30,9 +30,11 @@ const Transactions = () => {
         description: income.description,
         amount: income.amount,
         type: 'income',
+        // Update these mappings to match your API response structure
         category: income.category?.name || 'Uncategorized',
         subcategory: income.subcategory?.name || 'None',
-        account: income.account?.name || 'No Account',
+        account: income.accountId?.name || 'No Account', // Changed from account to accountId
+        accountType: income.accountId?.type || 'Unknown', // Add account type
         date: new Date(income.date).toISOString().split('T')[0]
       }));
 
@@ -41,9 +43,11 @@ const Transactions = () => {
         description: expense.description,
         amount: expense.amount,
         type: 'expense',
+        // Update these mappings to match your API response structure
         category: expense.category?.name || 'Uncategorized',
         subcategory: expense.subcategory?.name || 'None',
-        account: expense.account?.name || 'No Account',
+        account: expense.accountId?.name || 'No Account', // Changed from account to accountId
+        accountType: expense.accountId?.type || 'Unknown', // Add account type
         date: new Date(expense.date).toISOString().split('T')[0]
       }));
 
@@ -70,7 +74,7 @@ const Transactions = () => {
       const income = filteredTransactions
         .filter(t => t.type === 'income')
         .reduce((sum, t) => sum + parseFloat(t.amount), 0);
-      
+
       const expenses = filteredTransactions
         .filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + parseFloat(t.amount), 0);
@@ -122,7 +126,7 @@ const Transactions = () => {
   return (
     <div className="p-4 h-[94vh] overflow-auto w-full bg-gray-100 border-4 border-white shadow-xl rounded-2xl">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Transactions</h2>
-      
+
       {error && (
         <div className="mb-4 text-red-500 bg-red-100 p-3 rounded">
           {error}
@@ -170,7 +174,7 @@ const Transactions = () => {
       <div className="bg-white p-4 rounded-lg shadow mb-4">
         <h3 className="text-xl font-bold text-gray-800 mb-4">Transactions Chart</h3>
         <div className="h-[400px]">
-          <Bar 
+          <Bar
             data={chartData}
             options={{
               responsive: true,
@@ -208,16 +212,19 @@ const Transactions = () => {
                 {filteredTransactions.map((transaction, index) => (
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="py-2 px-4 border-b">{transaction.description}</td>
-                    <td className={`py-2 px-4 border-b font-medium ${
-                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                    <td className={`py-2 px-4 border-b font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                      }`}>
                       {transaction.type === 'income' ? '+' : '-'}${transaction.amount}
                     </td>
                     <td className="py-2 px-4 border-b capitalize">{transaction.type}</td>
                     <td className="py-2 px-4 border-b">{transaction.category}</td>
                     <td className="py-2 px-4 border-b">{transaction.subcategory}</td>
-                    <td className="py-2 px-4 border-b">{transaction.account}</td>
-                    <td className="py-2 px-4 border-b">{transaction.date}</td>
+                    <td className="py-2 px-4 border-b">
+                      {transaction.account} ({transaction.accountType})
+                    </td>
+                    <td className="py-2 px-4 border-b">
+                      {new Date(transaction.date).toLocaleDateString()}
+                    </td>
                   </tr>
                 ))}
               </tbody>

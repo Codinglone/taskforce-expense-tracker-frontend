@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -12,62 +12,51 @@ const Reports = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    console.log('Current filtered transactions:', filteredTransactions);
+  }, [filteredTransactions]);
+
   const generateReport = async () => {
-    if (!startDate || !endDate) {
-      setError('Please select both start and end dates');
-      return;
-    }
-
-    if (new Date(startDate) > new Date(endDate)) {
-      setError('Start date cannot be later than end date');
-      return;
-    }
-
     setLoading(true);
     setError('');
-
     try {
-      // Fetch both income and expenses
-      const [incomeData, expensesData] = await Promise.all([
+      const [incomeRes, expenseRes] = await Promise.all([
         getIncome(),
         getExpenses()
       ]);
-
-      // Format income transactions
-      const incomeTransactions = incomeData.map(income => ({
-        description: income.description,
-        amount: income.amount,
+  
+      console.log('Raw income data:', incomeRes);
+      console.log('Raw expense data:', expenseRes);
+  
+      const incomeTransactions = incomeRes.map(income => ({
+        ...income,
         type: 'income',
-        category: income.category?.name || '',
-        subcategory: income.subcategory?.name || '',
-        account: income.account?.name || '',
-        date: new Date(income.date).toISOString().split('T')[0]
+        category: income.category?.name || income.category || 'N/A',
+        subcategory: income.subcategory?.name || income.subcategory || 'N/A',
+        account: income.accountId?.name || 'N/A'
       }));
-
-      // Format expense transactions
-      const expenseTransactions = expensesData.map(expense => ({
-        description: expense.description,
-        amount: expense.amount,
+  
+      const expenseTransactions = expenseRes.map(expense => ({
+        ...expense,
         type: 'expense',
-        category: expense.category?.name || '',
-        subcategory: expense.subcategory?.name || '',
-        account: expense.account?.name || '',
-        date: new Date(expense.date).toISOString().split('T')[0]
+        category: expense.category?.name || expense.category || 'N/A',
+        subcategory: expense.subcategory?.name || expense.subcategory || 'N/A',
+        account: expense.accountId?.name || 'N/A'
       }));
-
-      // Combine and filter by date range
+  
       const allTransactions = [...incomeTransactions, ...expenseTransactions]
         .filter(transaction => {
           const transactionDate = new Date(transaction.date);
           return transactionDate >= new Date(startDate) && 
                  transactionDate <= new Date(endDate);
         })
-        .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
-
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+      console.log('Processed transactions:', allTransactions);
       setFilteredTransactions(allTransactions);
     } catch (err) {
+      console.error('Error generating report:', err);
       setError('Failed to fetch transactions. Please try again.');
-      console.error('Error:', err);
     } finally {
       setLoading(false);
     }
@@ -86,14 +75,14 @@ const Reports = () => {
       Category: transaction.category,
       Subcategory: transaction.subcategory,
       Account: transaction.account,
-      Date: transaction.date,
+      Date: new Date(transaction.date).toLocaleDateString(),
     }));
 
     try {
       if (reportFormat === 'json') {
         const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
         saveAs(blob, `transactions_${startDate}_to_${endDate}.json`);
-      } 
+      }
       else if (reportFormat === 'csv') {
         const headers = Object.keys(report[0]).join(',');
         const csv = [
@@ -102,7 +91,7 @@ const Reports = () => {
         ].join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         saveAs(blob, `transactions_${startDate}_to_${endDate}.csv`);
-      } 
+      }
       else if (reportFormat === 'pdf') {
         const doc = new jsPDF();
         doc.autoTable({
@@ -138,7 +127,7 @@ const Reports = () => {
   return (
     <div className="p-4 h-[94vh] overflow-auto w-full bg-gray-100 border-4 border-white shadow-xl rounded-2xl">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Financial Reports</h2>
-      
+
       {/* Date Range Selection */}
       <div className="bg-white p-4 rounded-lg shadow mb-4">
         <h3 className="text-xl font-bold text-gray-800 mb-3">Generate Report</h3>
@@ -164,11 +153,10 @@ const Reports = () => {
           <button
             onClick={generateReport}
             disabled={loading}
-            className={`${
-              loading 
-                ? 'bg-gray-500' 
-                : 'bg-blue-500 hover:bg-blue-700'
-            } text-white px-4 py-2 rounded-lg shadow transition duration-200 self-end`}
+            className={`${loading
+              ? 'bg-gray-500'
+              : 'bg-blue-500 hover:bg-blue-700'
+              } text-white px-4 py-2 rounded-lg shadow transition duration-200 self-end`}
           >
             {loading ? 'Loading...' : 'Generate Report'}
           </button>
@@ -188,11 +176,10 @@ const Reports = () => {
           <button
             onClick={downloadReport}
             disabled={filteredTransactions.length === 0}
-            className={`${
-              filteredTransactions.length === 0 
-                ? 'bg-gray-500' 
-                : 'bg-green-500 hover:bg-green-700'
-            } text-white px-4 py-2 rounded-lg shadow transition duration-200`}
+            className={`${filteredTransactions.length === 0
+              ? 'bg-gray-500'
+              : 'bg-green-500 hover:bg-green-700'
+              } text-white px-4 py-2 rounded-lg shadow transition duration-200`}
           >
             Download Report
           </button>
@@ -213,11 +200,10 @@ const Reports = () => {
             {Object.entries(calculateTotals()).map(([key, value]) => (
               <div key={key} className="p-4 rounded-lg shadow bg-gray-50">
                 <h4 className="text-lg font-semibold capitalize">{key}</h4>
-                <p className={`text-xl ${
-                  key === 'expenses' ? 'text-red-600' : 
-                  key === 'income' ? 'text-green-600' : 
-                  value >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
+                <p className={`text-xl ${key === 'expenses' ? 'text-red-600' :
+                  key === 'income' ? 'text-green-600' :
+                    value >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
                   ${Math.abs(value).toFixed(2)}
                 </p>
               </div>
@@ -240,21 +226,33 @@ const Reports = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredTransactions.map((transaction, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="py-2 px-4 border-b">{transaction.description}</td>
-                    <td className={`py-2 px-4 border-b font-medium ${
-                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {transaction.type === 'income' ? '+' : '-'}${transaction.amount}
-                    </td>
-                    <td className="py-2 px-4 border-b capitalize">{transaction.type}</td>
-                    <td className="py-2 px-4 border-b">{transaction.category}</td>
-                    <td className="py-2 px-4 border-b">{transaction.subcategory}</td>
-                    <td className="py-2 px-4 border-b">{transaction.account}</td>
-                    <td className="py-2 px-4 border-b">{transaction.date}</td>
-                  </tr>
-                ))}
+                {filteredTransactions.map((transaction, index) => {
+                  console.log('Rendering transaction:', transaction); // Debug log
+                  return (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="py-2 px-4 border-b">{transaction.description}</td>
+                      <td className={`py-2 px-4 border-b font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                        {transaction.type === 'income' ? '+' : '-'}${transaction.amount}
+                      </td>
+                      <td className="py-2 px-4 border-b capitalize">{transaction.type}</td>
+                      <td className="py-2 px-4 border-b">
+                        {transaction.category}
+                        {transaction.category === 'N/A' &&
+                          console.log('Category data:', transaction.category)}
+                      </td>
+                      <td className="py-2 px-4 border-b">
+                        {transaction.subcategory}
+                        {transaction.subcategory === 'N/A' &&
+                          console.log('Subcategory data:', transaction.subcategory)}
+                      </td>
+                      <td className="py-2 px-4 border-b">{transaction.account}</td>
+                      <td className="py-2 px-4 border-b">
+                        {new Date(transaction.date).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

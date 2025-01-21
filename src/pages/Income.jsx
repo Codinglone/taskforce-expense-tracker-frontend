@@ -2,24 +2,34 @@ import React, { useState, useEffect } from "react";
 import { Bar } from "react-chartjs-2";
 import "chart.js/auto";
 import { toast } from "react-toastify";
-import { addIncome, getIncome, getAccounts } from "../utils/api";
-
+import { addIncome, getIncome, getAccounts, getIncomeCategories } from "../utils/api";
+import axiosInstance from "../utils/api";
 const Income = () => {
   const [incomes, setIncomes] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountFilter, setSelectedAccountFilter] = useState("All");
-  const [totalIncome, setTotalIncome] = useState(0);
+  const [incomeCategories, setIncomeCategories] = useState([]);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [newCategory, setNewCategory] = useState("");
+  const [newSubcategory, setNewSubcategory] = useState("");
+
   const [newIncome, setNewIncome] = useState({
     description: "",
     amount: "",
     accountId: "",
+    category: "",
+    subcategory: "",
     date: new Date().toISOString().split('T')[0],
   });
 
   useEffect(() => {
     fetchData();
+    fetchIncomeCategories();
   }, []);
 
   const fetchData = async () => {
@@ -39,6 +49,27 @@ const Income = () => {
     }
   };
 
+  const fetchIncomeCategories = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getIncomeCategories();
+      if (Array.isArray(data)) {
+        setIncomeCategories(data);
+      } else {
+        console.error("Unexpected income categories data format:", data);
+        setError("Failed to load income categories");
+        toast.error("Error loading income categories");
+      }
+    } catch (error) {
+      console.error("Error fetching income categories:", error);
+      setError("Failed to load income categories");
+      toast.error("Error fetching income categories");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Filter incomes based on selected account
   const filteredIncomes = incomes.filter(income => {
     if (selectedAccountFilter === "All") return true;
@@ -51,6 +82,51 @@ const Income = () => {
     0
   );
 
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axiosInstance.post('/income-categories', {
+        name: newCategory,
+        subcategories: []
+      });
+      setIncomeCategories([...incomeCategories, response.data]);
+      setNewCategory("");
+      setShowCategoryModal(false);
+      toast.success("Category added successfully!");
+    } catch (error) {
+      console.error("Error adding category:", error);
+      toast.error("Error adding category");
+    }
+  };
+
+  const handleAddSubcategory = async (e) => {
+    e.preventDefault();
+    if (!selectedCategory) {
+      toast.error("Please select a category first");
+      return;
+    }
+
+    try {
+      const category = incomeCategories.find(cat => cat._id === selectedCategory);
+      const updatedSubcategories = [...category.subcategories, { name: newSubcategory }];
+
+      const response = await axiosInstance.put(`/income-categories/${selectedCategory}`, {
+        subcategories: updatedSubcategories
+      });
+
+      setIncomeCategories(incomeCategories.map(cat =>
+        cat._id === selectedCategory ? response.data : cat
+      ));
+
+      setNewSubcategory("");
+      setShowSubcategoryModal(false);
+      toast.success("Subcategory added successfully!");
+    } catch (error) {
+      console.error("Error adding subcategory:", error);
+      toast.error("Error adding subcategory");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -58,21 +134,49 @@ const Income = () => {
         toast.error("Please select an account");
         return;
       }
+      if (!newIncome.category) {
+        toast.error("Please select a category");
+        return;
+      }
+      if (!newIncome.subcategory) {
+        toast.error("Please select a subcategory");
+        return;
+      }
 
-      const response = await addIncome(newIncome);
+      // Log the data being sent
+      const incomeData = {
+        description: newIncome.description,
+        amount: Number(newIncome.amount),
+        accountId: newIncome.accountId,
+        category: newIncome.category,
+        subcategory: newIncome.subcategory,
+        date: newIncome.date
+      };
+
+      console.log("Sending income data:", incomeData);
+
+      const response = await addIncome(incomeData);
+      console.log("Server response:", response);
+
       setIncomes([response, ...incomes]);
       setShowTransactionForm(false);
       setNewIncome({
         description: "",
         amount: "",
         accountId: "",
+        category: "",
+        subcategory: "",
         date: new Date().toISOString().split('T')[0],
       });
       toast.success("Income added successfully!");
-      fetchData(); // Refresh the data
+      fetchData();
     } catch (error) {
-      console.error("Error adding income:", error);
-      toast.error("Error adding income");
+      console.error("Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      toast.error(error.response?.data?.message || "Error adding income");
     }
   };
 
@@ -121,8 +225,105 @@ const Income = () => {
 
   return (
     <div className="p-4 h-[94vh] overflow-auto w-full bg-gray-100 border-4 border-white shadow-xl rounded-2xl">
+      {error && <div className="text-red-500 mb-4">{error}</div>}
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Income</h2>
-      
+      {/* Category Management Buttons */}
+      <div className="mb-4 flex space-x-2">
+        <button
+          onClick={() => setShowCategoryModal(true)}
+          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+        >
+          Add Category
+        </button>
+        <button
+          onClick={() => setShowSubcategoryModal(true)}
+          className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+        >
+          Add Subcategory
+        </button>
+      </div>
+
+      {/* Category Modal */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h3 className="text-xl font-bold mb-4">Add New Category</h3>
+            <form onSubmit={handleAddCategory}>
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="Category Name"
+                className="w-full p-2 border rounded mb-4"
+                required
+              />
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryModal(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                  Add
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Subcategory Modal */}
+      {showSubcategoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h3 className="text-xl font-bold mb-4">Add New Subcategory</h3>
+            <form onSubmit={handleAddSubcategory}>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full p-2 border rounded mb-4"
+                required
+              >
+                <option value="">Select Category</option>
+                {incomeCategories.map((cat) => (
+                  <option key={cat._id} value={cat._id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={newSubcategory}
+                onChange={(e) => setNewSubcategory(e.target.value)}
+                placeholder="Subcategory Name"
+                className="w-full p-2 border rounded mb-4"
+                required
+              />
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSubcategoryModal(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                  Add
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="mb-4">
         <button
           className="bg-blue-500 text-white p-2 rounded-lg shadow hover:bg-blue-700"
@@ -164,9 +365,52 @@ const Income = () => {
               />
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700">Category</label>
+              <select
+                value={newIncome.category || ""}
+                onChange={(e) => {
+                  setNewIncome({
+                    ...newIncome,
+                    category: e.target.value,
+                    subcategory: ""  // Reset subcategory when category changes
+                  });
+                }}
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
+              >
+                <option value="">Select Category</option>
+                {incomeCategories.map((cat) => (
+                  <option key={cat._id} value={cat._id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Subcategory</label>
+              <select
+                value={newIncome.subcategory || ""}
+                onChange={(e) =>
+                  setNewIncome({ ...newIncome, subcategory: e.target.value })
+                }
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
+                disabled={!newIncome.category}
+              >
+                <option value="">Select Subcategory</option>
+                {newIncome.category && incomeCategories
+                  .find(cat => cat._id === newIncome.category)
+                  ?.subcategories.map((subcat) => (
+                    <option key={subcat._id} value={subcat._id}>
+                      {subcat.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700">Account</label>
               <select
-                value={newIncome.accountId}
+                value={newIncome.accountId || ""}
                 onChange={(e) =>
                   setNewIncome({ ...newIncome, accountId: e.target.value })
                 }
