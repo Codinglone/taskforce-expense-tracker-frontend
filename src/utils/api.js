@@ -33,7 +33,7 @@ export const addIncome = async (incomeData) => {
 export const addExpense = async (expenseData) => {
   try {
     const response = await axiosInstance.post('/expenses', expenseData);
-    return response;  // Return the full response object
+    return response;
   } catch (error) {
     console.error('Error adding expense:', error);
     throw error;

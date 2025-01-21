@@ -19,7 +19,6 @@ const Sidebar = () => {
     { name: "Income", path: "/income", icon: <GiReceiveMoney /> },
     { name: "Expense", path: "/expense", icon: <GiPayMoney /> },
     { name: "Reports", path: "/reports", icon: <FaBook /> },
-    // { name: "Settings", path: "/settings", icon: <FaGear /> },
   ];
 
   const handleLogout = () => {

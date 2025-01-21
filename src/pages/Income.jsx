@@ -372,7 +372,7 @@ const Income = () => {
                   setNewIncome({
                     ...newIncome,
                     category: e.target.value,
-                    subcategory: ""  // Reset subcategory when category changes
+                    subcategory: ""
                   });
                 }}
                 required
