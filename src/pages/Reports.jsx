@@ -24,10 +24,10 @@ const Reports = () => {
         getIncome(),
         getExpenses()
       ]);
-  
+
       console.log('Raw income data:', incomeRes);
       console.log('Raw expense data:', expenseRes);
-  
+
       const incomeTransactions = incomeRes.map(income => ({
         ...income,
         type: 'income',
@@ -35,7 +35,7 @@ const Reports = () => {
         subcategory: income.subcategory?.name || income.subcategory || 'N/A',
         account: income.accountId?.name || 'N/A'
       }));
-  
+
       const expenseTransactions = expenseRes.map(expense => ({
         ...expense,
         type: 'expense',
@@ -43,15 +43,15 @@ const Reports = () => {
         subcategory: expense.subcategory?.name || expense.subcategory || 'N/A',
         account: expense.accountId?.name || 'N/A'
       }));
-  
+
       const allTransactions = [...incomeTransactions, ...expenseTransactions]
         .filter(transaction => {
           const transactionDate = new Date(transaction.date);
-          return transactionDate >= new Date(startDate) && 
-                 transactionDate <= new Date(endDate);
+          return transactionDate >= new Date(startDate) &&
+            transactionDate <= new Date(endDate);
         })
         .sort((a, b) => new Date(b.date) - new Date(a.date));
-  
+
       console.log('Processed transactions:', allTransactions);
       setFilteredTransactions(allTransactions);
     } catch (err) {
